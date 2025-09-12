@@ -2,16 +2,16 @@
   --cell: 40px;
   --gap: 0px;
 
-  /* Dimensiones del tablero 16:9 (⬅ antes 9:16) */
-  --cols: 16; /* ⬅ */
-  --rows: 9;  /* ⬅ */
+  /* Dimensiones del tablero 16:9 */
+  --cols: 16;
+  --rows: 9;
 
   /* Filas no jugables (abajo) */
-  --npRows: 2; /* ⬅ menos alto en horizontal */
+  --npRows: 2;
 
-  /* Altura del HUD en "filas" (≤ npRows) y desplazamiento */
-  --hudRows: 1.4;   /* ⬅ */
-  --hudOffset: 1.6; /* ⬅ */
+  /* Altura del HUD y desplazamiento */
+  --hudRows: 1.4;
+  --hudOffset: 1.6;
 
   /* Fondo compartido */
   --bg-url: url("assets/background.png");
@@ -70,9 +70,7 @@ body {
 #portada .btn-jugar:hover { background: linear-gradient(180deg, #2ecc71, #229954); }
 
 /* ---------- Escena de diálogo ---------- */
-#dialogScene{
-  position: fixed; inset: 0; z-index: 12000; display: block;
-}
+#dialogScene{ position: fixed; inset: 0; z-index: 12000; display: block; }
 #dialogScene .dialog-bg{
   position: absolute; inset: 0;
   background-image: var(--bg-url);
@@ -82,9 +80,9 @@ body {
 /* Personajes */
 .dialog-char{
   position: absolute;
-  bottom: 10%;          /* ⬅ un poco más abajo en horizontal */
-  height: 72%;          /* ⬅ más altos en horizontal */
-  max-width: 36vw;      /* ⬅ */
+  bottom: 10%;
+  height: 72%;
+  max-width: 36vw;
   object-fit: contain;
   image-rendering: pixelated;
   opacity: 0.6;
@@ -142,7 +140,7 @@ body {
 }
 .overlay-box{
   background: #101418; border: 1px solid rgba(255,255,255,.15);
-  border-radius: 14px; padding: 22px 20px; width: min(70vw, 520px); /* ⬅ */
+  border-radius: 14px; padding: 22px 20px; width: min(70vw, 520px);
   text-align: center; box-shadow: 0 12px 28px rgba(0,0,0,.45);
 }
 .overlay-box h1{ margin: 0 0 14px 0; }
@@ -204,7 +202,7 @@ body {
 button { padding: 7px 10px; font-size: 13px; border-radius: 10px; border: 1px solid #c9d2e3; background: white; color: #111; cursor: pointer; }
 button.primary { background: #1b76ff; color: white; border-color: #1b76ff; }
 
-/* FX (igual que antes) */
+/* ---------- FX ---------- */
 @keyframes flash-yellow { 0% { background-color: rgba(255,230,0,.75);} 100% {background-color: transparent;} }
 @keyframes flash-red { 0% { background-color: rgba(255,60,60,.75);} 100% {background-color: transparent;} }
 .celda.flash-player { animation: flash-yellow .28s ease-out; }
@@ -220,7 +218,7 @@ button.primary { background: #1b76ff; color: white; border-color: #1b76ff; }
 @keyframes screen-shake { 0% { transform: translate(0, 0); } 20% { transform: translate(-6px, 4px); } 40% { transform: translate(6px, -3px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(4px, -2px); } 100% { transform: translate(0, 0); } }
 .shake { animation: screen-shake 0.4s ease-in-out; }
 
-/* ---------- Bloqueo de orientación vertical (⬅ invertido) ---------- */
+/* ---------- Bloqueo de orientación vertical ---------- */
 #orientationBlocker{
   position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center;
   background: rgba(0,0,0,.85); backdrop-filter: blur(2px);
@@ -232,7 +230,7 @@ button.primary { background: #1b76ff; color: white; border-color: #1b76ff; }
 }
 
 /* Ultra-compacto */
-@media (max-width: 800px){ /* ⬅ umbral más alto en horizontal */
+@media (max-width: 800px){
   .card { grid-template-columns: 46px 1fr; gap: 6px; }
   .card .portrait { width: 46px; height: 46px; }
   .meta { font-size: 11px; }
