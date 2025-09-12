@@ -5,13 +5,13 @@
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=landscape-16x9"><!-- ⬅ -->
+  <link rel="stylesheet" href="style.css?v=landscape-16x9">
 </head>
 <body>
-  <!-- Bloqueo por orientación vertical (ahora el juego es horizontal) -->
+  <!-- Bloqueo por orientación vertical (juego horizontal) -->
   <div id="orientationBlocker" style="display:none">
     <div class="obx">
-      <p>Gira el dispositivo para jugar en horizontal</p> <!-- ⬅ -->
+      <p>Gira el dispositivo para jugar en horizontal</p>
     </div>
   </div>
 
@@ -24,8 +24,12 @@
   <!-- Escena de diálogo (2 personajes + typewriter) -->
   <div id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
-    <img class="dialog-char left" id="charKnight" src="assets/player.png" alt="Caballero">
-    <img class="dialog-char right" id="charArcher" src="assets/archer.png" alt="Arquera">
+
+    <!-- Personajes -->
+    <img class="dialog-char left"  id="charKnight" src="assets/player.PNG"  alt="Caballero">
+    <img class="dialog-char right" id="charArcher" src="assets/archer.PNG" alt="Arquera">
+
+    <!-- Caja de diálogo -->
     <div class="dialog-box">
       <div class="dialog-name" id="dialogName">Caballero</div>
       <div class="dialog-text" id="dialogText"></div>
@@ -54,6 +58,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=landscape-16x9"></script> <!-- ⬅ -->
+  <script src="script.js?v=landscape-16x9"></script>
 </body>
 </html>
