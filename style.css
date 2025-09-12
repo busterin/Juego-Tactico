@@ -48,7 +48,7 @@ body {
 }
 #portada .btn-jugar:hover { background: linear-gradient(180deg, #2ecc71, #229954); }
 
-/* ---------- Escena de diálogo ---------- */
+/* ---------- Escena de diálogo (actualizado) ---------- */
 #dialogScene{ position: fixed; inset: 0; z-index: 12000; }
 #dialogScene .dialog-bg{
   position: absolute; inset: 0;
@@ -56,28 +56,51 @@ body {
   background-size: cover; background-position: center;
   filter: brightness(.95) saturate(1.05);
 }
+
+/* Personajes más altos, sin volteos, y un poco elevados */
 .dialog-char{
-  position: absolute; bottom: 10%;
-  height: 72%; max-width: 36vw; object-fit: contain;
-  image-rendering: pixelated; opacity: .6;
-  transition: opacity .2s ease; pointer-events: none;
+  position: absolute;
+  bottom: 16%;          /* ↑ antes 10% */
+  height: 68%;          /* ↓ antes 72% para compensar */
+  max-width: 34vw;      /* ↓ antes 36vw para evitar solapes */
+  object-fit: contain;
+  image-rendering: pixelated;
+  opacity: .6;
+  transition: opacity .2s ease;
+  pointer-events: none;
 }
-.dialog-char.left  { left: 3%;  transform: translateX(-120%); animation: char-in-left .55s ease-out forwards; }
-.dialog-char.right { right: 3%;  transform: translateX(120%) scaleX(-1); transform-origin: center; animation: char-in-right .65s ease-out forwards; animation-delay: .1s; }
+.dialog-char.left  { left: 3%;  transform: translateX(-120%); animation: char-in-left  .55s ease-out forwards; }
+.dialog-char.right { right: 3%;  transform: translateX(120%);  animation: char-in-right .65s ease-out forwards; animation-delay: .1s; }
 
-@keyframes char-in-left  { 0%{transform:translateX(-120%);opacity:0;}70%{transform:translateX(4%);opacity:1;}100%{transform:translateX(0);opacity:1;} }
-@keyframes char-in-right { 0%{transform:translateX(120%) scaleX(-1);opacity:0;}70%{transform:translateX(-4%) scaleX(-1);opacity:1;}100%{transform:translateX(0) scaleX(-1);opacity:1;} }
+/* Animaciones de entrada sin flips */
+@keyframes char-in-left  {
+  0%   { transform: translateX(-120%); opacity: 0; }
+  70%  { transform: translateX(4%);    opacity: 1; }
+  100% { transform: translateX(0);     opacity: 1; }
+}
+@keyframes char-in-right {
+  0%   { transform: translateX(120%); opacity: 0; }
+  70%  { transform: translateX(-4%);  opacity: 1; }
+  100% { transform: translateX(0);    opacity: 1; }
+}
 
+/* Personaje activo: luz + pop (no afecta orientación) */
 .dialog-char.speaking{ opacity: 1 !important; filter: drop-shadow(0 0 10px rgba(255,255,255,.12)); }
-@keyframes speak-pop { 0%{transform:translateY(0) scale(1);}30%{transform:translateY(-3px) scale(1.03);}60%{transform:translateY(0) scale(1);}100%{transform:translateY(0) scale(1);} }
+@keyframes speak-pop {
+  0%{transform:translateY(0) scale(1);}
+  30%{transform:translateY(-3px) scale(1.03);}
+  60%{transform:translateY(0) scale(1);}
+  100%{transform:translateY(0) scale(1);}
+}
 .dialog-char.pop { animation: speak-pop 1.2s ease-in-out .3s infinite; }
 
-/* Caja de diálogo */
+/* Caja de diálogo 100% opaca (sin transparencia) */
 .dialog-box{
   position: absolute; left: 6%; right: 6%; bottom: 4%;
-  background: rgba(7,12,16,.88);
+  background: #0b1014;                    /* ← opaco */
   border: 1px solid rgba(255,255,255,.14);
-  border-radius: 12px; padding: 10px 12px 12px;
+  border-radius: 12px;
+  padding: 10px 12px 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,.35);
 }
 .dialog-name{ font-weight: 800; margin-bottom: 6px; color:#fff; letter-spacing: .2px; }
