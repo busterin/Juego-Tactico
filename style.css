@@ -4,8 +4,8 @@
   --cols: 16;       /* 16x9 horizontal */
   --rows: 9;
   --npRows: 2;      /* filas no jugables (abajo) */
-  --hudRows: 1.6;   /* altura HUD en “filas” */
-  --hudOffset: 1.8; /* desplazamiento desde abajo */
+  --hudRows: 1.6;   /* altura HUD en “filas” (no usado al fijarlo abajo) */
+  --hudOffset: 1.8; /* desplazamiento (ya no usado, HUD fijo) */
   --bg-url: url("assets/background.PNG");
 }
 
@@ -140,21 +140,29 @@ body {
   position: relative;
 }
 
-/* ---------- HUD (como vertical, adaptado) ---------- */
+/* ---------- HUD fijo y superpuesto ---------- */
 #hud{
-  position: absolute; left: 0; right: 0;
-  top: calc(var(--cell) * (var(--rows) - var(--hudRows) - var(--hudOffset)));
-  height: calc(var(--cell) * var(--hudRows));
-  padding: 6px 8px; display: flex; flex-direction: column; gap: 6px;
-  background: transparent; pointer-events: auto;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(8px, env(safe-area-inset-bottom));
+  width: min(100vw, calc(var(--cols) * var(--cell)));
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: transparent;
+  z-index: 15000;
+  pointer-events: none;
 }
+#ficha, #acciones{ pointer-events: auto; }
 
 #ficha {
   display: none; width: 100%; text-align: left;
   background: rgba(16,20,24,.88); color: #ddd;
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 10px; padding: 6px 8px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.25);
+  box-shadow: 0 8px 20px rgba(0,0,0,.35);
 }
 .card { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: center; }
 .card .portrait { width: 52px; height: 52px; border-radius: 8px; background-size: cover; background-position: center; background-repeat: no-repeat; border: 1px solid rgba(255,255,255,.12); }
