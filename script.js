@@ -1,4 +1,4 @@
-/* build: landscape-16x9 · combate original restaurado */
+/* build: landscape-16x9 · diálogo Guerrera/Arquero · HUD formateado · .PNG tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -28,16 +28,17 @@
     };
   }
 
-  // ---------- Diálogos intro (mismas líneas) ----------
+  // ---------- Diálogos intro (nombres cambiados) ----------
+  // Mantengo 'who' = 'knight'/'archer' para la lógica de énfasis, pero los nombres visibles son Guerrera/Arquero
   const dialogLines = [
-    { who:'knight', name:'Caballero', text:'Os doy la bienvenida a Tactic Heroes. Nuestro objetivo es derrotar al ejército rival.' },
-    { who:'archer', name:'Arquera',   text:'Seleccionar un personaje para ver su rango de movimiento y después elegir dónde colocarlo.' },
-    { who:'knight', name:'Caballero', text:'El caballero ataca si está adyacente al enemigo y la arquera a una casilla de distancia.' },
-    { who:'archer', name:'Arquera',   text:'Todo listo. ¡Entremos en combate!' }
+    { who:'knight', name:'Guerrera', text:'Os doy la bienvenida a Tactic Heroes. Nuestro objetivo es derrotar al ejército rival.' },
+    { who:'archer', name:'Arquero',  text:'Selecciona un personaje para ver su rango y elige dónde colocarlo.' },
+    { who:'knight', name:'Guerrera', text:'La guerrera ataca si está adyacente y el arquero a dos casillas en línea recta.' },
+    { who:'archer', name:'Arquero',  text:'¡Todo listo, entremos en combate!' }
   ];
   let dlgIndex = 0, typing=false, typeTimer=null, speakPopTimer=null;
 
-  // Unidades del jugador (mismos stats que vertical)
+  // Unidades del jugador (stats como vertical)
   const makeKnight = () => ({
     id: "K", tipo: "caballero",
     fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
@@ -69,12 +70,12 @@
   const dialogNameEl = document.getElementById("dialogName");
   const dialogTextEl = document.getElementById("dialogText");
   const btnDialogNext = document.getElementById("btnDialogNext");
-  const charKnight = document.getElementById("charKnight");
-  const charArcher = document.getElementById("charArcher");
+  const charKnight = document.getElementById("charKnight"); // Guerrera (derecha)
+  const charArcher = document.getElementById("charArcher"); // Arquero (izquierda)
 
-  // Carga tolerante imágenes diálogo
-  if (charKnight) loadImgCaseTolerant(charKnight, "assets/player.PNG");
-  if (charArcher) loadImgCaseTolerant(charArcher, "assets/archer.PNG");
+  // Carga de imágenes de diálogo nuevas
+  if (charKnight) loadImgCaseTolerant(charKnight, "assets/GuerreraDialogo.PNG");
+  if (charArcher) loadImgCaseTolerant(charArcher, "assets/ArqueroDialogo.PNG");
 
   // ---------- Banner turno ----------
   function showTurnBanner(text){
@@ -134,10 +135,10 @@
   const enLineaRecta = (a,b) => (a.fila===b.fila) || (a.col===b.col);
   function getCelda(f,c){ return mapa.querySelector(`.celda[data-key="${f},${c}"]`); }
 
-  // ---------- Oleadas (igual que vertical salvo cantidades por ancho) ----------
+  // ---------- Oleadas (como vertical) ----------
   function spawnFase(){
     enemies = [];
-    const count = (fase === 1) ? 3 : (fase === 2) ? 4 : 0; // puedes subir a 4/5 si quieres más densidad
+    const count = (fase === 1) ? 3 : (fase === 2) ? 4 : 0;
     if (count === 0) return;
     const ocupadas = new Set(players.filter(p=>p.vivo).map(p=>key(p.fila,p.col)));
     for (let i=0; i<count; i++){
@@ -210,13 +211,14 @@
     acciones.innerHTML="";
     if (turno!=="jugador" || !unidad?.vivo) return;
 
+    // Info de MP
     const infoMp = document.createElement("div");
     infoMp.textContent = `MP: ${unidad.mp}/${PLAYER_MAX_MP}`;
     infoMp.style.marginRight = "6px";
     infoMp.style.alignSelf = "center";
     acciones.appendChild(infoMp);
 
-    // === Como en vertical: botones de ataque SOLO a enemigos en rango segun 'range' + línea recta ===
+    // Botones ATACAR a cada enemigo en rango (como vertical)
     enemigosEnRango(unidad).forEach(en=>{
       const b=document.createElement("button");
       b.className="primary";
@@ -225,6 +227,7 @@
       acciones.appendChild(b);
     });
 
+    // Botón Pasar turno
     const bTurn=document.createElement("button");
     bTurn.textContent="Pasar turno";
     bTurn.onclick=endTurn;
@@ -252,7 +255,7 @@
     ficha.style.display="block";
   }
 
-  // ---------- Movimiento (idéntico a vertical) ----------
+  // ---------- Movimiento (idéntico vertical) ----------
   function calcularCeldasMovibles(u){
     celdasMovibles.clear();
     distSel = Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
@@ -275,7 +278,7 @@
     }
   }
 
-  // === ALCANCE (idéntico a vertical): línea recta + distancia exacta en 'range' ===
+  // ---------- Rango (como vertical: línea recta + distancia exacta) ----------
   function enemigosEnRango(u){
     return enemies.filter(e=>{
       if(!e.vivo) return false;
@@ -285,12 +288,13 @@
     });
   }
 
-  // ---------- Clicks / selección / movimiento ----------
+  // ---------- Clicks ----------
   function manejarClick(f,c){
     if (noJugable(f)) return;
 
     const pj = players.find(p=>p.vivo&&p.fila===f&&p.col===c);
     const en = enemies.find(e=>e.vivo&&e.fila===f&&e.col===c);
+
     if(pj) renderFicha(pj); else if(en) renderFicha(en);
 
     if (turno!=="jugador") return;
@@ -355,7 +359,7 @@
     if(obj.hp<=0){ obj.vivo=false; efectoMuerte(obj); }
   }
 
-  // ---------- Validación objetivos (igual) ----------
+  // ---------- Validación / combate ----------
   function isAliveEnemyById(id){ return enemies.find(e=>e.id===id && e.vivo); }
   function isAlivePlayerByRef(p){ return players.includes(p) && p.vivo; }
   function stillInRange(attacker, target){
@@ -365,7 +369,6 @@
     return (attacker.range || []).includes(d);
   }
 
-  // ---------- Combate jugador (idéntico) ----------
   function atacarUnidadA(u, objetivoRef){
     const objetivo = isAliveEnemyById(objetivoRef.id);
     if (!objetivo || !stillInRange(u, objetivo)) { botonesAccionesPara(u); return; }
@@ -393,7 +396,7 @@
     }
   }
 
-  // ---------- IA Enemiga (idéntica) ----------
+  // ---------- IA Enemiga ----------
   function turnoIAEnemigos(){
     if (turno !== "enemigo") return;
     const vivosJ = players.filter(p=>p.vivo);
@@ -403,7 +406,7 @@
       if (!en.vivo) continue;
       en.mp = ENEMY_MAX_MP;
 
-      // objetivo más cercano (distancia Manhattan)
+      // objetivo más cercano (Manhattan)
       let objetivo = vivosJ[0];
       let mejor = manhattan(en, objetivo);
       for (const p of vivosJ){ const d = manhattan(en, p); if (d < mejor){ mejor = d; objetivo = p; } }
@@ -444,7 +447,7 @@
     }
   }
 
-  // ---------- Typewriter y escena de diálogo (igual) ----------
+  // ---------- Typewriter & escena de diálogo ----------
   function clearPop(){ [charKnight, charArcher].forEach(el=>el && el.classList.remove('pop','speaking')); }
   function setActiveSpeaker(){
     clearTimeout(speakPopTimer);
@@ -539,7 +542,7 @@
         applyOrientationLock();
       };
     } else {
-      // Fallback si no hubiera portada
+      // Fallback
       mapa.style.display = "grid";
       setTurno("jugador");
     }
