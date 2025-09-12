@@ -21,15 +21,11 @@
     <button id="btnJugar" class="btn-jugar">JUGAR</button>
   </div>
 
-  <!-- Escena de diálogo (2 personajes + typewriter) -->
+  <!-- Escena de diálogo -->
   <div id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
-
-    <!-- Personajes -->
-    <img class="dialog-char left"  id="charKnight" src="assets/player.PNG"  alt="Caballero">
-    <img class="dialog-char right" id="charArcher" src="assets/archer.PNG" alt="Arquera">
-
-    <!-- Caja de diálogo -->
+    <img class="dialog-char left"  id="charKnight" alt="Caballero">
+    <img class="dialog-char right" id="charArcher" alt="Arquera">
     <div class="dialog-box">
       <div class="dialog-name" id="dialogName">Caballero</div>
       <div class="dialog-text" id="dialogText"></div>
@@ -39,7 +35,7 @@
     </div>
   </div>
 
-  <!-- Overlay NIVEL COMPLETADO -->
+  <!-- Overlay -->
   <div id="overlayWin" class="overlay" style="display:none">
     <div class="overlay-box">
       <h1>NIVEL COMPLETADO</h1>
@@ -47,10 +43,10 @@
     </div>
   </div>
 
-  <!-- Banner de turno superpuesto -->
+  <!-- Banner -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
 
-  <!-- Tablero (16x9) + HUD dentro -->
+  <!-- Tablero -->
   <div id="mapa" style="display:none">
     <div id="hud">
       <div id="ficha"></div>
