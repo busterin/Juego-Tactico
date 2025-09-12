@@ -5,7 +5,7 @@
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=landscape-16x9">
+  <link rel="stylesheet" href="style.css?v=landscape-16x9-hudfix">
 </head>
 <body>
   <!-- Bloqueo por orientación vertical (juego horizontal) -->
@@ -21,13 +21,17 @@
     <button id="btnJugar" class="btn-jugar">JUGAR</button>
   </div>
 
-  <!-- Escena de diálogo (2 personajes + typewriter) -->
+  <!-- Escena de diálogo -->
   <div id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
-    <img class="dialog-char left"  id="charKnight" alt="Caballero">
-    <img class="dialog-char right" id="charArcher" alt="Arquera">
+
+    <!-- Personajes: Arquero izquierda, Guerrera derecha -->
+    <img class="dialog-char left"  id="charArcher"  alt="Arquero">
+    <img class="dialog-char right" id="charKnight" alt="Guerrera">
+
+    <!-- Caja de diálogo -->
     <div class="dialog-box">
-      <div class="dialog-name" id="dialogName">Caballero</div>
+      <div class="dialog-name" id="dialogName">Guerrera</div>
       <div class="dialog-text" id="dialogText"></div>
       <div class="dialog-cta">
         <button id="btnDialogNext" class="primary small">Continuar</button>
@@ -46,7 +50,7 @@
   <!-- Banner de turno -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
 
-  <!-- Tablero (16x9) -->
+  <!-- Tablero (16x9) + HUD dentro -->
   <div id="mapa" style="display:none">
     <div id="hud">
       <div id="ficha"></div>
@@ -54,6 +58,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=landscape-16x9"></script>
+  <script src="script.js?v=landscape-16x9-hudfix"></script>
 </body>
 </html>
