@@ -1,10 +1,10 @@
-/* build: landscape-16x9 + portada→diálogo→juego + PNG tolerant */
+/* build: landscape-16x9 · combate original restaurado */
 (function(){
-  // --- Dimensiones tablero 16x9 ---
+  // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
   const NON_PLAYABLE_BOTTOM_ROWS = 2;
 
-  // Parámetros combate
+  // Parámetros
   const PLAYER_MAX_MP = 5;
   const ENEMY_MAX_MP  = 3;
   const ENEMY_BASE_DAMAGE = 50;
@@ -28,31 +28,31 @@
     };
   }
 
-  // ---------- Diálogos (typewriter + alternancia) ----------
+  // ---------- Diálogos intro (mismas líneas) ----------
   const dialogLines = [
     { who:'knight', name:'Caballero', text:'Os doy la bienvenida a Tactic Heroes. Nuestro objetivo es derrotar al ejército rival.' },
-    { who:'archer', name:'Arquera',   text:'Selecciona un personaje para ver su rango y elige dónde colocarlo.' },
-    { who:'knight', name:'Caballero', text:'El caballero ataca adyacente; la arquera a dos casillas en línea recta.' },
-    { who:'archer', name:'Arquera',   text:'¡Todo listo, entremos en combate!' }
+    { who:'archer', name:'Arquera',   text:'Seleccionar un personaje para ver su rango de movimiento y después elegir dónde colocarlo.' },
+    { who:'knight', name:'Caballero', text:'El caballero ataca si está adyacente al enemigo y la arquera a una casilla de distancia.' },
+    { who:'archer', name:'Arquera',   text:'Todo listo. ¡Entremos en combate!' }
   ];
   let dlgIndex = 0, typing=false, typeTimer=null, speakPopTimer=null;
 
-  // Unidades jugador
+  // Unidades del jugador (mismos stats que vertical)
   const makeKnight = () => ({
-    id:"K", tipo:"caballero",
-    fila:Math.floor(ROWS*0.55), col:Math.floor(COLS*0.25),
-    vivo:true, nombre:"Caballero",
-    hp:100, maxHp:100,
-    retrato:"assets/player.PNG", nivel:1, kills:0,
-    damage:50, range:[1], acted:false, mp:PLAYER_MAX_MP
+    id: "K", tipo: "caballero",
+    fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
+    vivo: true, nombre: "Caballero",
+    hp: 100, maxHp: 100,
+    retrato: "assets/player.PNG", nivel: 1, kills: 0,
+    damage: 50, range: [1], acted: false, mp: PLAYER_MAX_MP
   });
   const makeArcher = () => ({
-    id:"A", tipo:"arquera",
-    fila:Math.floor(ROWS*0.55), col:Math.floor(COLS*0.20),
-    vivo:true, nombre:"Arquera",
-    hp:80, maxHp:80,
-    retrato:"assets/archer.PNG", nivel:1, kills:0,
-    damage:50, range:[2], acted:false, mp:PLAYER_MAX_MP
+    id: "A", tipo: "arquera",
+    fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.20),
+    vivo: true, nombre: "Arquera",
+    hp: 80, maxHp: 80,
+    retrato: "assets/archer.PNG", nivel: 1, kills: 0,
+    damage: 50, range: [2], acted: false, mp: PLAYER_MAX_MP
   });
 
   // DOM
@@ -72,11 +72,11 @@
   const charKnight = document.getElementById("charKnight");
   const charArcher = document.getElementById("charArcher");
 
-  // Carga tolerante imágenes de diálogo
+  // Carga tolerante imágenes diálogo
   if (charKnight) loadImgCaseTolerant(charKnight, "assets/player.PNG");
   if (charArcher) loadImgCaseTolerant(charArcher, "assets/archer.PNG");
 
-  // ---------- Turn banner ----------
+  // ---------- Banner turno ----------
   function showTurnBanner(text){
     turnBanner.textContent = text;
     turnBanner.style.display = "block";
@@ -89,8 +89,8 @@
 
   // ---------- Layout / tamaño celda ----------
   function getUsableViewport(){
-    const w = Math.max(innerWidth || 0, document.documentElement.clientWidth || 0);
-    const h = Math.max(innerHeight || 0, document.documentElement.clientHeight || 0);
+    const w = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
+    const h = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
     return { w, h };
   }
   function ajustarTamanoTablero(){
@@ -104,12 +104,12 @@
     mapa.style.width  = `${cell * COLS}px`;
     mapa.style.height = `${cell * ROWS}px`;
   }
-  addEventListener('resize', ajustarTamanoTablero);
-  addEventListener('orientationchange', ajustarTamanoTablero);
+  window.addEventListener('resize', ajustarTamanoTablero);
+  window.addEventListener('orientationchange', ajustarTamanoTablero);
   new ResizeObserver(()=>ajustarTamanoTablero()).observe(document.body);
 
   // ---------- Bloqueo de orientación (bloquea vertical) ----------
-  function isPortrait(){ return innerHeight > innerWidth; }
+  function isPortrait(){ return window.innerHeight > window.innerWidth; }
   function applyOrientationLock(){
     const blocker = document.getElementById("orientationBlocker");
     const enVertical = isPortrait();
@@ -122,8 +122,8 @@
   }
   function setupOrientationLock(){
     applyOrientationLock();
-    addEventListener("resize", applyOrientationLock);
-    addEventListener("orientationchange", ()=> setTimeout(applyOrientationLock,100));
+    window.addEventListener("resize", applyOrientationLock);
+    window.addEventListener("orientationchange", ()=> setTimeout(applyOrientationLock,100));
   }
 
   // ---------- Utils ----------
@@ -134,10 +134,10 @@
   const enLineaRecta = (a,b) => (a.fila===b.fila) || (a.col===b.col);
   function getCelda(f,c){ return mapa.querySelector(`.celda[data-key="${f},${c}"]`); }
 
-  // ---------- Oleadas ----------
+  // ---------- Oleadas (igual que vertical salvo cantidades por ancho) ----------
   function spawnFase(){
     enemies = [];
-    const count = (fase === 1) ? 4 : (fase === 2) ? 5 : 0;
+    const count = (fase === 1) ? 3 : (fase === 2) ? 4 : 0; // puedes subir a 4/5 si quieres más densidad
     if (count === 0) return;
     const ocupadas = new Set(players.filter(p=>p.vivo).map(p=>key(p.fila,p.col)));
     for (let i=0; i<count; i++){
@@ -149,7 +149,7 @@
       ocupadas.add(key(f,c));
       enemies.push({
         id:`E${Date.now()}-${i}`,
-        nombre:`Bandido ${i+1 + (fase===2?count:0)}`,
+        nombre:`Bandido ${i+1 + (fase===2?3:0)}`,
         fila:f, col:c, vivo:true,
         hp:50, maxHp:50,
         retrato:"assets/enemy.PNG",
@@ -160,17 +160,16 @@
     if (turno==="jugador") players.forEach(p=>{ p.acted=false; p.mp=PLAYER_MAX_MP; });
   }
 
-  // ---------- Render tablero ----------
+  // ---------- Render ----------
   function dibujarMapa(){
     mapa.querySelectorAll(".celda").forEach(n=>n.remove());
     for (let f=0; f<ROWS; f++){
       for (let c=0; c<COLS; c++){
         const celda = document.createElement("div");
         celda.className = "celda";
-        celda.dataset.key = `${f},${c}`;
+        celda.dataset.key = key(f,c);
         if (noJugable(f)) celda.style.pointerEvents = "none";
-
-        if (seleccionado && celdasMovibles.has(`${f},${c}`)) celda.classList.add("movible");
+        if (seleccionado && celdasMovibles.has(key(f,c))) celda.classList.add("movible");
         if (seleccionado && seleccionado.fila===f && seleccionado.col===c) celda.classList.add("seleccionada");
 
         for (const p of players){
@@ -217,6 +216,7 @@
     infoMp.style.alignSelf = "center";
     acciones.appendChild(infoMp);
 
+    // === Como en vertical: botones de ataque SOLO a enemigos en rango segun 'range' + línea recta ===
     enemigosEnRango(unidad).forEach(en=>{
       const b=document.createElement("button");
       b.className="primary";
@@ -252,7 +252,7 @@
     ficha.style.display="block";
   }
 
-  // ---------- Movimiento / alcance ----------
+  // ---------- Movimiento (idéntico a vertical) ----------
   function calcularCeldasMovibles(u){
     celdasMovibles.clear();
     distSel = Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
@@ -275,28 +275,36 @@
     }
   }
 
+  // === ALCANCE (idéntico a vertical): línea recta + distancia exacta en 'range' ===
   function enemigosEnRango(u){
     return enemies.filter(e=>{
       if(!e.vivo) return false;
       if(!enLineaRecta(u,e)) return false;
       const d = Math.abs(u.fila-e.fila)+Math.abs(u.col-e.col);
-      return u.range.includes(d);
+      return (u.range || []).includes(d);
     });
   }
 
-  // ---------- Clicks ----------
+  // ---------- Clicks / selección / movimiento ----------
   function manejarClick(f,c){
     if (noJugable(f)) return;
 
     const pj = players.find(p=>p.vivo&&p.fila===f&&p.col===c);
     const en = enemies.find(e=>e.vivo&&e.fila===f&&e.col===c);
     if(pj) renderFicha(pj); else if(en) renderFicha(en);
+
     if (turno!=="jugador") return;
 
     if (pj){
-      if (pj.acted){ seleccionado=null; celdasMovibles.clear(); distSel=null; dibujarMapa(); acciones.innerHTML=""; return; }
-      seleccionado=pj; if (seleccionado.mp>0) calcularCeldasMovibles(seleccionado); else { celdasMovibles.clear(); distSel=null; }
-      dibujarMapa(); botonesAccionesPara(seleccionado); return;
+      if (pj.acted){
+        seleccionado=null; celdasMovibles.clear(); distSel=null; dibujarMapa(); acciones.innerHTML="";
+        return;
+      }
+      seleccionado=pj;
+      if (seleccionado.mp>0) calcularCeldasMovibles(seleccionado);
+      else { celdasMovibles.clear(); distSel=null; }
+      dibujarMapa(); botonesAccionesPara(seleccionado);
+      return;
     }
 
     if (seleccionado){
@@ -320,7 +328,7 @@
     }
   }
 
-  // ---------- FX / daño ----------
+  // ---------- FX ----------
   function efectoAtaque(objetivo, cantidad, fuente){
     const celda = getCelda(objetivo.fila, objetivo.col);
     if(!celda) return;
@@ -347,17 +355,17 @@
     if(obj.hp<=0){ obj.vivo=false; efectoMuerte(obj); }
   }
 
-  // ---------- Validación ----------
+  // ---------- Validación objetivos (igual) ----------
   function isAliveEnemyById(id){ return enemies.find(e=>e.id===id && e.vivo); }
   function isAlivePlayerByRef(p){ return players.includes(p) && p.vivo; }
   function stillInRange(attacker, target){
     if (!target?.vivo) return false;
     if (!enLineaRecta(attacker, target)) return false;
     const d = Math.abs(attacker.fila - target.fila) + Math.abs(attacker.col - target.col);
-    return attacker.range.includes(d);
+    return (attacker.range || []).includes(d);
   }
 
-  // ---------- Ataque jugador ----------
+  // ---------- Combate jugador (idéntico) ----------
   function atacarUnidadA(u, objetivoRef){
     const objetivo = isAliveEnemyById(objetivoRef.id);
     if (!objetivo || !stillInRange(u, objetivo)) { botonesAccionesPara(u); return; }
@@ -385,7 +393,7 @@
     }
   }
 
-  // ---------- IA Enemiga ----------
+  // ---------- IA Enemiga (idéntica) ----------
   function turnoIAEnemigos(){
     if (turno !== "enemigo") return;
     const vivosJ = players.filter(p=>p.vivo);
@@ -395,12 +403,12 @@
       if (!en.vivo) continue;
       en.mp = ENEMY_MAX_MP;
 
-      // objetivo más cercano
+      // objetivo más cercano (distancia Manhattan)
       let objetivo = vivosJ[0];
       let mejor = manhattan(en, objetivo);
       for (const p of vivosJ){ const d = manhattan(en, p); if (d < mejor){ mejor = d; objetivo = p; } }
 
-      // moverse hacia el objetivo
+      // moverse hasta 3 pasos
       const step = (a,b)=> a<b?1:(a>b?-1:0);
       while (en.mp > 0){
         if (manhattan(en, objetivo) === 1) break;
@@ -436,12 +444,13 @@
     }
   }
 
-  // ---------- Typewriter / diálogo ----------
+  // ---------- Typewriter y escena de diálogo (igual) ----------
   function clearPop(){ [charKnight, charArcher].forEach(el=>el && el.classList.remove('pop','speaking')); }
   function setActiveSpeaker(){
     clearTimeout(speakPopTimer);
     const line = dialogLines[dlgIndex];
     if (!line) return;
+
     if (charKnight && charArcher){
       charKnight.style.opacity = '.6';
       charArcher.style.opacity = '.6';
@@ -452,8 +461,10 @@
         else { charArcher.classList.add('pop'); }
       }, 500);
     }
+
     if (dialogNameEl) dialogNameEl.textContent = line.name;
   }
+
   function typeWriter(text, speed=22){
     typing = true;
     dialogTextEl.textContent = '';
@@ -471,6 +482,7 @@
     }
     step();
   }
+
   function showCurrentDialog(){
     const line = dialogLines[dlgIndex];
     if (!line) return;
@@ -478,6 +490,7 @@
     clearTimeout(typeTimer);
     typeWriter(line.text);
   }
+
   function advanceDialog(){
     if (!dialog) return;
     const line = dialogLines[dlgIndex];
@@ -500,21 +513,18 @@
     showCurrentDialog();
   }
 
-  // ---------- Init / flujo portada → diálogo → juego ----------
+  // ---------- Init (portada → diálogo → juego) ----------
   function init(){
     players=[makeKnight(),makeArcher()];
-    ajustarTamanoTablero();
-    spawnFase();
-    dibujarMapa();
-
+    ajustarTamanoTablero(); spawnFase(); dibujarMapa();
     if (btnContinuar) btnContinuar.onclick=()=>{ overlayWin.style.display="none"; location.reload(); };
 
-    // Portada: visible al cargar
+    // Portada visible al cargar
     if (portada) portada.style.display = "flex";
     if (mapa) mapa.style.display = "none";
     if (dialog) dialog.style.display = "none";
 
-    // Botón JUGAR → muestra diálogo (typewriter)
+    // Botón JUGAR → Diálogo
     if (btnJugar){
       btnJugar.onclick = ()=>{
         portada.style.display = "none";
@@ -523,15 +533,17 @@
           dialog.style.display = "block";
           showCurrentDialog();
         } else {
-          // fallback si no hubiera diálogo
           mapa.style.display = "grid";
           setTurno("jugador");
         }
         applyOrientationLock();
       };
+    } else {
+      // Fallback si no hubiera portada
+      mapa.style.display = "grid";
+      setTurno("jugador");
     }
 
-    // Botón CONTINUAR (diálogo) → avanza líneas y entra al juego al terminar
     if (btnDialogNext) btnDialogNext.onclick = advanceDialog;
 
     setupOrientationLock();
