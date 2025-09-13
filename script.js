@@ -1,555 +1,386 @@
-/* build: landscape-16x9 · diálogo Guerrera/Arquero · HUD formateado · .PNG tolerant */
-(function(){
-  // --- Dimensiones tablero 16×9 ---
-  const ROWS = 9, COLS = 16;
-  const NON_PLAYABLE_BOTTOM_ROWS = 2;
+(() => {
+  // ====== CONFIGURACIÓN ======
+  const VIRTUAL_W = 420;
+  const VIRTUAL_H = 740;
 
-  // Parámetros
-  const PLAYER_MAX_MP = 5;
-  const ENEMY_MAX_MP  = 3;
-  const ENEMY_BASE_DAMAGE = 50;
+  const SCROLL_SPEED_BASE = 160; // px/s
+  const SCROLL_SPEED_GAIN = 0.3; // por "moneda"/pez recogido
 
-  // Estado
-  let turno = "jugador";
-  let fase = 1;
-  let enemies = [];
-  let players = [];
-  let seleccionado = null;
-  let celdasMovibles = new Set();
-  let distSel = null;
+  // Velocidad del fondo (sutil)
+  const BG_SCROLL_SPEED = 20; // px/s
 
-  // --- Helper: tolerante a .PNG/.png ---
-  function loadImgCaseTolerant(imgEl, src){
-    imgEl.src = src;
-    imgEl.onerror = ()=>{
-      if (src.endsWith('.PNG')) imgEl.src = src.replace(/\.PNG$/, '.png');
-      else if (src.endsWith('.png')) imgEl.src = src.replace(/\.png$/, '.PNG');
-      imgEl.onerror = null;
-    };
-  }
+  // Barco al doble de tamaño
+  const BOAT = {
+    width: 92,
+    height: 156,
+    speed: 480, // px/s horizontal
+    invulnMs: 1200
+  };
 
-  // ---------- Diálogos intro (nombres cambiados) ----------
-  // Mantengo 'who' = 'knight'/'archer' para la lógica de énfasis, pero los nombres visibles son Guerrera/Arquero
-  const dialogLines = [
-    { who:'knight', name:'Guerrera', text:'Os doy la bienvenida a Tactic Heroes. Nuestro objetivo es derrotar al ejército rival.' },
-    { who:'archer', name:'Arquero',  text:'Selecciona un personaje para ver su rango y elige dónde colocarlo.' },
-    { who:'knight', name:'Guerrera', text:'La guerrera ataca si está adyacente y el arquero a dos casillas en línea recta.' },
-    { who:'archer', name:'Arquero',  text:'¡Todo listo, entremos en combate!' }
-  ];
-  let dlgIndex = 0, typing=false, typeTimer=null, speakPopTimer=null;
+  // Ajustados para que se vean más grandes
+  const COIN = { radius: 24, spawnEveryMs: 700 }; // antes radius:16
+  const OBST = { size: 72, spawnEveryMs: 950 };   // antes size:56
 
-  // Unidades del jugador (stats como vertical)
-  const makeKnight = () => ({
-    id: "K", tipo: "caballero",
-    fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
-    vivo: true, nombre: "Caballero",
-    hp: 100, maxHp: 100,
-    retrato: "assets/player.PNG", nivel: 1, kills: 0,
-    damage: 50, range: [1], acted: false, mp: PLAYER_MAX_MP
+  const WIN_COINS = 10;
+  const START_LIVES = 3;
+
+  // Rutas a assets (nombres/caps EXACTOS)
+  const ASSETS = {
+    water: "assets/Fondo.PNG",  // fondo base
+    boat:  "assets/Barco.PNG",
+    coin:  "assets/Peces.PNG",  // peces
+    rock:  "assets/Rocas.PNG",  // rocas
+    heart: "assets/heart_32.png"
+  };
+
+  // ====== ESTADO ======
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha: false });
+
+  const hudHearts = document.getElementById('hearts');
+  const hudCoins = document.getElementById('coins');
+  const overlay = document.getElementById('overlay');
+  const overlayTitle = document.getElementById('overlay-title');
+  const overlaySub = document.getElementById('overlay-sub');
+  const restartBtn = document.getElementById('restartBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const touchLayer = document.getElementById('touch-layer');
+
+  let DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+  // Loader con logs de depuración
+  const loadImage = (src) => new Promise((res) => {
+    const img = new Image();
+    img.onload = () => { console.log("[OK] Cargado", src); res(img); };
+    img.onerror = () => { console.warn("[ERROR] No se pudo cargar", src); res(null); };
+    img.src = src;
   });
-  const makeArcher = () => ({
-    id: "A", tipo: "arquera",
-    fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.20),
-    vivo: true, nombre: "Arquera",
-    hp: 80, maxHp: 80,
-    retrato: "assets/archer.PNG", nivel: 1, kills: 0,
-    damage: 50, range: [2], acted: false, mp: PLAYER_MAX_MP
-  });
 
-  // DOM
-  const mapa = document.getElementById("mapa");
-  const acciones = document.getElementById("acciones");
-  const ficha = document.getElementById("ficha");
-  const overlayWin = document.getElementById("overlayWin");
-  const btnContinuar = document.getElementById("btnContinuar");
-  const turnBanner = document.getElementById("turnBanner");
+  const images = {};
+  let state = {
+    running: true,
+    time: 0,
+    lastTs: 0,
+    scroll: 0,
+    speed: SCROLL_SPEED_BASE,
+    lives: START_LIVES,
+    coins: 0,
+    invulnUntil: 0,
+    boat: { x: VIRTUAL_W/2, y: VIRTUAL_H*0.78, w: BOAT.width, h: BOAT.height },
+    pointerX: null,
+    entities: { coins: [], obst: [] },
+    timers: { coin: 0, obst: 0 },
+    // Fondo dinámico:
+    bgScroll: 0
+  };
 
-  const portada = document.getElementById("portada");
-  const btnJugar = document.getElementById("btnJugar");
-  const dialog = document.getElementById("dialogScene");
-  const dialogNameEl = document.getElementById("dialogName");
-  const dialogTextEl = document.getElementById("dialogText");
-  const btnDialogNext = document.getElementById("btnDialogNext");
-  const charKnight = document.getElementById("charKnight"); // Guerrera (derecha)
-  const charArcher = document.getElementById("charArcher"); // Arquero (izquierda)
+  // ====== ORIENTACIÓN ======
+  const isLandscape = () => window.innerWidth > window.innerHeight;
 
-  // Carga de imágenes de diálogo nuevas
-  if (charKnight) loadImgCaseTolerant(charKnight, "assets/GuerreraDialogo.PNG");
-  if (charArcher) loadImgCaseTolerant(charArcher, "assets/ArqueroDialogo.PNG");
-
-  // ---------- Banner turno ----------
-  function showTurnBanner(text){
-    turnBanner.textContent = text;
-    turnBanner.style.display = "block";
-    setTimeout(()=>{ turnBanner.style.display = "none"; }, 1300);
-  }
-  function setTurno(t){
-    turno = t;
-    showTurnBanner(t==="jugador" ? "TU TURNO" : t==="enemigo" ? "TURNO ENEMIGO" : "FIN DE PARTIDA");
+  function showRotateBlock(){
+    overlay.classList.add('show');
+    overlayTitle.textContent = 'Gira el móvil 📱↻';
+    overlaySub.textContent = 'Este juego está pensado para vertical.';
+    restartBtn.classList.add('hidden');
+    state.running = false;
+    pauseBtn.textContent = '▶️';
   }
 
-  // ---------- Layout / tamaño celda ----------
-  function getUsableViewport(){
-    const w = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
-    const h = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
-    return { w, h };
-  }
-  function ajustarTamanoTablero(){
-    const { w:vw, h:vh } = getUsableViewport();
-    const pad = 12;
-    const cell = Math.max(28, Math.floor(Math.min((vw - pad)/COLS, (vh - pad)/ROWS)));
-    document.documentElement.style.setProperty('--cell', `${cell}px`);
-    document.documentElement.style.setProperty('--cols', COLS);
-    document.documentElement.style.setProperty('--rows', ROWS);
-    document.documentElement.style.setProperty('--npRows', NON_PLAYABLE_BOTTOM_ROWS);
-    mapa.style.width  = `${cell * COLS}px`;
-    mapa.style.height = `${cell * ROWS}px`;
-  }
-  window.addEventListener('resize', ajustarTamanoTablero);
-  window.addEventListener('orientationchange', ajustarTamanoTablero);
-  new ResizeObserver(()=>ajustarTamanoTablero()).observe(document.body);
-
-  // ---------- Bloqueo de orientación (bloquea vertical) ----------
-  function isPortrait(){ return window.innerHeight > window.innerWidth; }
-  function applyOrientationLock(){
-    const blocker = document.getElementById("orientationBlocker");
-    const enVertical = isPortrait();
-    const portadaVisible = portada && getComputedStyle(portada).display !== "none";
-    const shouldBlock = enVertical && !portadaVisible;
-    blocker.style.display = shouldBlock ? "grid" : "none";
-    if (portada){ portada.style.pointerEvents = "auto"; portada.style.filter = "none"; }
-    const dim = (el)=>{ if(!el) return; el.style.pointerEvents = shouldBlock ? "none" : "auto"; el.style.filter = shouldBlock ? "grayscale(1) blur(1.5px) brightness(.7)" : "none"; };
-    dim(dialog); dim(mapa);
-  }
-  function setupOrientationLock(){
-    applyOrientationLock();
-    window.addEventListener("resize", applyOrientationLock);
-    window.addEventListener("orientationchange", ()=> setTimeout(applyOrientationLock,100));
-  }
-
-  // ---------- Utils ----------
-  const key = (f,c) => `${f},${c}`;
-  const dentro = (f,c) => f>=0 && f<ROWS && c>=0 && c<COLS;
-  const noJugable = (f) => f >= ROWS - NON_PLAYABLE_BOTTOM_ROWS;
-  const manhattan = (a,b) => Math.abs(a.fila-b.fila)+Math.abs(a.col-b.col);
-  const enLineaRecta = (a,b) => (a.fila===b.fila) || (a.col===b.col);
-  function getCelda(f,c){ return mapa.querySelector(`.celda[data-key="${f},${c}"]`); }
-
-  // ---------- Oleadas (como vertical) ----------
-  function spawnFase(){
-    enemies = [];
-    const count = (fase === 1) ? 3 : (fase === 2) ? 4 : 0;
-    if (count === 0) return;
-    const ocupadas = new Set(players.filter(p=>p.vivo).map(p=>key(p.fila,p.col)));
-    for (let i=0; i<count; i++){
-      let f,c;
-      do {
-        f = Math.floor(Math.random()*(ROWS - NON_PLAYABLE_BOTTOM_ROWS));
-        c = Math.floor(Math.random()*COLS);
-      } while (ocupadas.has(key(f,c)));
-      ocupadas.add(key(f,c));
-      enemies.push({
-        id:`E${Date.now()}-${i}`,
-        nombre:`Bandido ${i+1 + (fase===2?3:0)}`,
-        fila:f, col:c, vivo:true,
-        hp:50, maxHp:50,
-        retrato:"assets/enemy.PNG",
-        damage:ENEMY_BASE_DAMAGE,
-        mp: ENEMY_MAX_MP
-      });
-    }
-    if (turno==="jugador") players.forEach(p=>{ p.acted=false; p.mp=PLAYER_MAX_MP; });
-  }
-
-  // ---------- Render ----------
-  function dibujarMapa(){
-    mapa.querySelectorAll(".celda").forEach(n=>n.remove());
-    for (let f=0; f<ROWS; f++){
-      for (let c=0; c<COLS; c++){
-        const celda = document.createElement("div");
-        celda.className = "celda";
-        celda.dataset.key = key(f,c);
-        if (noJugable(f)) celda.style.pointerEvents = "none";
-        if (seleccionado && celdasMovibles.has(key(f,c))) celda.classList.add("movible");
-        if (seleccionado && seleccionado.fila===f && seleccionado.col===c) celda.classList.add("seleccionada");
-
-        for (const p of players){
-          if (p.vivo && p.fila===f && p.col===c){
-            const img = document.createElement("img");
-            img.alt = p.nombre;
-            img.className = "fichaMiniImg";
-            loadImgCaseTolerant(img, (p.tipo==="caballero") ? "assets/player.PNG" : "assets/archer.PNG");
-            celda.appendChild(img);
-          }
-        }
-        for (const e of enemies){
-          if (e.vivo && e.fila===f && e.col===c){
-            const img = document.createElement("img");
-            img.alt = e.nombre;
-            img.className = "fichaMiniImg";
-            loadImgCaseTolerant(img, "assets/enemy.PNG");
-            celda.appendChild(img);
-          }
-        }
-
-        celda.addEventListener("click", ()=>manejarClick(f,c));
-        mapa.appendChild(celda);
-      }
+  function hideRotateBlockIfNeeded(){
+    if (overlay.classList.contains('show') &&
+        overlayTitle.textContent.startsWith('Gira el móvil')) {
+      overlay.classList.remove('show');
+      restartBtn.classList.add('hidden');
+      state.running = true;
+      pauseBtn.textContent = '⏸';
     }
   }
 
-  // ---------- HUD / acciones ----------
-  function endTurn(){
-    players.forEach(p=>{ p.acted=true; p.mp=0; });
-    seleccionado=null; celdasMovibles.clear(); distSel=null;
-    acciones.innerHTML="";
-    setTurno("enemigo");
-    setTimeout(turnoIAEnemigos, 140);
-  }
-
-  function botonesAccionesPara(unidad){
-    acciones.innerHTML="";
-    if (turno!=="jugador" || !unidad?.vivo) return;
-
-    // Info de MP
-    const infoMp = document.createElement("div");
-    infoMp.textContent = `MP: ${unidad.mp}/${PLAYER_MAX_MP}`;
-    infoMp.style.marginRight = "6px";
-    infoMp.style.alignSelf = "center";
-    acciones.appendChild(infoMp);
-
-    // Botones ATACAR a cada enemigo en rango (como vertical)
-    enemigosEnRango(unidad).forEach(en=>{
-      const b=document.createElement("button");
-      b.className="primary";
-      b.textContent=`ATACAR ${en.nombre}`;
-      b.onclick=()=>atacarUnidadA(unidad,en);
-      acciones.appendChild(b);
-    });
-
-    // Botón Pasar turno
-    const bTurn=document.createElement("button");
-    bTurn.textContent="Pasar turno";
-    bTurn.onclick=endTurn;
-    acciones.appendChild(bTurn);
-  }
-
-  // ---------- Ficha ----------
-  function renderFicha(u){
-    if(!u){ ficha.style.display="none"; ficha.innerHTML=""; return; }
-    const pct = Math.max(0, Math.min(100, Math.round((u.hp/u.maxHp)*100)));
-    const grad = (pct>50)?"linear-gradient(90deg,#2ecc71,#27ae60)":(pct>25)?"linear-gradient(90deg,#f1c40f,#e67e22)":"linear-gradient(90deg,#e74c3c,#c0392b)";
-    const extra = `· Daño <b>${u.damage}</b> · KOs <b>${u.kills}</b> · MP <b>${u.mp}</b>/${PLAYER_MAX_MP}`;
-    ficha.innerHTML = `
-      <div class="card">
-        <div class="portrait" style="background-image:url('${u.retrato}')"></div>
-        <div class="info">
-          <p class="name">${u.nombre}</p>
-          <p class="meta">${extra}</p>
-          <div class="hp">
-            <div class="bar"><span style="width:${pct}%; background:${grad}"></span></div>
-            <div class="value">${u.hp}/${u.maxHp} HP</div>
-          </div>
-        </div>
-      </div>`;
-    ficha.style.display="block";
-  }
-
-  // ---------- Movimiento (idéntico vertical) ----------
-  function calcularCeldasMovibles(u){
-    celdasMovibles.clear();
-    distSel = Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
-    const q=[]; distSel[u.fila][u.col]=0; q.push([u.fila,u.col]);
-    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    while(q.length){
-      const [f,c]=q.shift();
-      for(const [df,dc] of dirs){
-        const nf=f+df,nc=c+dc;
-        if(!dentro(nf,nc) || noJugable(nf)) continue;
-        const ocupado = enemies.some(e=>e.vivo&&e.fila===nf&&e.col===nc) ||
-                        players.some(p=>p.vivo&&p!==u&&p.fila===nf&&p.col===nc);
-        if(ocupado) continue;
-        const nd = distSel[f][c] + 1;
-        if(nd<=u.mp && nd<distSel[nf][nc]){ distSel[nf][nc]=nd; q.push([nf,nc]); }
-      }
-    }
-    for(let f=0;f<ROWS-NON_PLAYABLE_BOTTOM_ROWS;f++) for(let c=0;c<COLS;c++){
-      if(!(f===u.fila && c===u.col) && distSel[f][c]<=u.mp) celdasMovibles.add(`${f},${c}`);
-    }
-  }
-
-  // ---------- Rango (como vertical: línea recta + distancia exacta) ----------
-  function enemigosEnRango(u){
-    return enemies.filter(e=>{
-      if(!e.vivo) return false;
-      if(!enLineaRecta(u,e)) return false;
-      const d = Math.abs(u.fila-e.fila)+Math.abs(u.col-e.col);
-      return (u.range || []).includes(d);
-    });
-  }
-
-  // ---------- Clicks ----------
-  function manejarClick(f,c){
-    if (noJugable(f)) return;
-
-    const pj = players.find(p=>p.vivo&&p.fila===f&&p.col===c);
-    const en = enemies.find(e=>e.vivo&&e.fila===f&&e.col===c);
-
-    if(pj) renderFicha(pj); else if(en) renderFicha(en);
-
-    if (turno!=="jugador") return;
-
-    if (pj){
-      if (pj.acted){
-        seleccionado=null; celdasMovibles.clear(); distSel=null; dibujarMapa(); acciones.innerHTML="";
-        return;
-      }
-      seleccionado=pj;
-      if (seleccionado.mp>0) calcularCeldasMovibles(seleccionado);
-      else { celdasMovibles.clear(); distSel=null; }
-      dibujarMapa(); botonesAccionesPara(seleccionado);
-      return;
-    }
-
-    if (seleccionado){
-      if (f===seleccionado.fila && c===seleccionado.col){
-        seleccionado=null; celdasMovibles.clear(); distSel=null; dibujarMapa(); acciones.innerHTML=""; return;
-      }
-      const esAlcanzable = celdasMovibles.has(`${f},${c}`);
-      const ocupado = enemies.some(e=>e.vivo&&e.fila===f&&e.col===c) ||
-                      players.some(p=>p.vivo&&p!==seleccionado&&p.fila===f&&p.col===c);
-      if (esAlcanzable && !ocupado){
-        const coste = distSel[f][c] || 0;
-        seleccionado.fila=f; seleccionado.col=c;
-        seleccionado.mp = Math.max(0, seleccionado.mp - coste);
-        renderFicha(seleccionado);
-        if (seleccionado.mp>0){ calcularCeldasMovibles(seleccionado); }
-        else { celdasMovibles.clear(); distSel=null; }
-        dibujarMapa(); botonesAccionesPara(seleccionado);
-      } else {
-        botonesAccionesPara(seleccionado);
-      }
-    }
-  }
-
-  // ---------- FX ----------
-  function efectoAtaque(objetivo, cantidad, fuente){
-    const celda = getCelda(objetivo.fila, objetivo.col);
-    if(!celda) return;
-    const flash = (fuente==='enemy')?'flash-enemy':'flash-player';
-    celda.classList.add(flash); setTimeout(()=>celda.classList.remove(flash),280);
-    const sprite = celda.querySelector('.fichaMiniImg');
-    if (sprite){ sprite.classList.add('blink-hit'); setTimeout(()=>sprite.classList.remove('blink-hit'),600); }
-    const dmg=document.createElement('div');
-    dmg.className='dmg-float ' + (fuente==='enemy'?'dmg-enemy':'dmg-player');
-    dmg.textContent=`-${cantidad}`; celda.appendChild(dmg);
-    setTimeout(()=>dmg.remove(),650);
-  }
-  function efectoMuerte(unidad){
-    const celda = getCelda(unidad.fila, unidad.col);
-    if(!celda) return;
-    const sprite = celda.querySelector('.fichaMiniImg');
-    if (sprite){ sprite.classList.add('death-pop'); setTimeout(()=>{ if(sprite.parentNode) sprite.parentNode.removeChild(sprite); }, 360); }
-  }
-  function aplicarDanyo(obj,cant,fuente){
-    obj.hp=Math.max(0,obj.hp-cant);
-    efectoAtaque(obj,cant,fuente);
-    mapa.classList.add("shake");
-    setTimeout(()=>mapa.classList.remove("shake"), 400);
-    if(obj.hp<=0){ obj.vivo=false; efectoMuerte(obj); }
-  }
-
-  // ---------- Validación / combate ----------
-  function isAliveEnemyById(id){ return enemies.find(e=>e.id===id && e.vivo); }
-  function isAlivePlayerByRef(p){ return players.includes(p) && p.vivo; }
-  function stillInRange(attacker, target){
-    if (!target?.vivo) return false;
-    if (!enLineaRecta(attacker, target)) return false;
-    const d = Math.abs(attacker.fila - target.fila) + Math.abs(attacker.col - target.col);
-    return (attacker.range || []).includes(d);
-  }
-
-  function atacarUnidadA(u, objetivoRef){
-    const objetivo = isAliveEnemyById(objetivoRef.id);
-    if (!objetivo || !stillInRange(u, objetivo)) { botonesAccionesPara(u); return; }
-    aplicarDanyo(objetivo, u.damage, 'player');
-    renderFicha(objetivo);
-    setTimeout(()=>{
-      if(!objetivo.vivo){
-        u.kills=(u.kills||0)+1;
-        if (enemies.every(e=>!e.vivo)) {
-          if (fase === 1){ fase = 2; spawnFase(); dibujarMapa(); }
-          else if (fase === 2){ fase = 3; setTurno("fin"); overlayWin.style.display="grid"; }
-        }
-      }
-      u.acted = true; u.mp = 0;
-      seleccionado = null; celdasMovibles.clear(); distSel=null;
-      acciones.innerHTML="";
-      dibujarMapa();
-      comprobarCambioATurnoEnemigo();
-    }, 650);
-  }
-
-  function comprobarCambioATurnoEnemigo(){
-    if (players.every(p => !p.vivo || p.acted || p.mp===0)) {
-      setTurno("enemigo"); setTimeout(turnoIAEnemigos, 140);
-    }
-  }
-
-  // ---------- IA Enemiga ----------
-  function turnoIAEnemigos(){
-    if (turno !== "enemigo") return;
-    const vivosJ = players.filter(p=>p.vivo);
-    if (vivosJ.length === 0) { setTurno("fin"); return; }
-
-    for (const en of enemies) {
-      if (!en.vivo) continue;
-      en.mp = ENEMY_MAX_MP;
-
-      // objetivo más cercano (Manhattan)
-      let objetivo = vivosJ[0];
-      let mejor = manhattan(en, objetivo);
-      for (const p of vivosJ){ const d = manhattan(en, p); if (d < mejor){ mejor = d; objetivo = p; } }
-
-      // moverse hasta 3 pasos
-      const step = (a,b)=> a<b?1:(a>b?-1:0);
-      while (en.mp > 0){
-        if (manhattan(en, objetivo) === 1) break;
-        const cand = [];
-        if (en.fila !== objetivo.fila) cand.push([en.fila + step(en.fila, objetivo.fila), en.col]);
-        if (en.col  !== objetivo.col ) cand.push([en.fila, en.col + step(en.col,  objetivo.col )]);
-        let moved = false;
-        for (const [nf,nc] of cand){
-          if(!dentro(nf,nc) || noJugable(nf)) continue;
-          const ocupado = enemies.some(o=>o!==en && o.vivo && o.fila===nf && o.col===nc) ||
-                          players.some(p=>p.vivo && p.fila===nf && p.col===nc);
-          if(!ocupado){ en.fila=nf; en.col=nc; en.mp--; moved=true; break; }
-        }
-        if(!moved) break;
-      }
-
-      if (manhattan(en, objetivo) === 1 && isAlivePlayerByRef(objetivo)) {
-        aplicarDanyo(objetivo, ENEMY_BASE_DAMAGE, 'enemy');
-        renderFicha(objetivo);
-      }
-    }
-
-    players.forEach(p=>{ if(p.hp<=0) p.vivo=false; p.acted=false; p.mp = PLAYER_MAX_MP; });
-    dibujarMapa();
-
-    if (players.every(p=>!p.vivo)) { setTurno("fin"); }
-    else {
-      setTurno("jugador");
-      if (enemies.every(e=>!e.vivo)) {
-        if (fase === 1){ fase = 2; spawnFase(); dibujarMapa(); }
-        else if (fase === 2){ fase = 3; overlayWin.style.display="grid"; }
-      }
-    }
-  }
-
-  // ---------- Typewriter & escena de diálogo ----------
-  function clearPop(){ [charKnight, charArcher].forEach(el=>el && el.classList.remove('pop','speaking')); }
-  function setActiveSpeaker(){
-    clearTimeout(speakPopTimer);
-    const line = dialogLines[dlgIndex];
-    if (!line) return;
-
-    if (charKnight && charArcher){
-      charKnight.style.opacity = '.6';
-      charArcher.style.opacity = '.6';
-      if (line.who === 'knight'){ charKnight.style.opacity='1'; charKnight.classList.add('speaking'); }
-      else { charArcher.style.opacity='1'; charArcher.classList.add('speaking'); }
-      speakPopTimer = setTimeout(()=>{
-        if (line.who === 'knight'){ charKnight.classList.add('pop'); }
-        else { charArcher.classList.add('pop'); }
-      }, 500);
-    }
-
-    if (dialogNameEl) dialogNameEl.textContent = line.name;
-  }
-
-  function typeWriter(text, speed=22){
-    typing = true;
-    dialogTextEl.textContent = '';
-    dialogTextEl.classList.add('type-cursor');
-    let i = 0;
-    function step(){
-      if (i <= text.length){
-        dialogTextEl.textContent = text.slice(0,i);
-        i++;
-        typeTimer = setTimeout(step, speed);
-      } else {
-        typing = false;
-        dialogTextEl.classList.remove('type-cursor');
-      }
-    }
-    step();
-  }
-
-  function showCurrentDialog(){
-    const line = dialogLines[dlgIndex];
-    if (!line) return;
-    setActiveSpeaker();
-    clearTimeout(typeTimer);
-    typeWriter(line.text);
-  }
-
-  function advanceDialog(){
-    if (!dialog) return;
-    const line = dialogLines[dlgIndex];
-    if (typing){
-      clearTimeout(typeTimer);
-      dialogTextEl.textContent = line.text;
-      typing = false;
-      dialogTextEl.classList.remove('type-cursor');
-      return;
-    }
-    dlgIndex++;
-    clearPop();
-    if (dlgIndex >= dialogLines.length){
-      dialog.style.display = "none";
-      mapa.style.display = "grid";
-      setTurno("jugador");
-      applyOrientationLock();
-      return;
-    }
-    showCurrentDialog();
-  }
-
-  // ---------- Init (portada → diálogo → juego) ----------
-  function init(){
-    players=[makeKnight(),makeArcher()];
-    ajustarTamanoTablero(); spawnFase(); dibujarMapa();
-    if (btnContinuar) btnContinuar.onclick=()=>{ overlayWin.style.display="none"; location.reload(); };
-
-    // Portada visible al cargar
-    if (portada) portada.style.display = "flex";
-    if (mapa) mapa.style.display = "none";
-    if (dialog) dialog.style.display = "none";
-
-    // Botón JUGAR → Diálogo
-    if (btnJugar){
-      btnJugar.onclick = ()=>{
-        portada.style.display = "none";
-        if (dialog){
-          dlgIndex = 0;
-          dialog.style.display = "block";
-          showCurrentDialog();
-        } else {
-          mapa.style.display = "grid";
-          setTurno("jugador");
-        }
-        applyOrientationLock();
-      };
+  function updateOrientation(){
+    if (isLandscape()){
+      showRotateBlock();
     } else {
-      // Fallback
-      mapa.style.display = "grid";
-      setTurno("jugador");
+      hideRotateBlockIfNeeded();
+    }
+  }
+
+  // ====== CANVAS ======
+  function resizeCanvas(){
+    const cssW = Math.min(window.innerWidth, 420);
+    const cssH = Math.min(window.innerHeight, 740);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    canvas.width = Math.floor(VIRTUAL_W * DPR);
+    canvas.height = Math.floor(VIRTUAL_H * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    updateOrientation();
+  }
+
+  // ====== UTIL ======
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+  function aabb(a,b){
+    return Math.abs(a.x - b.x) * 2 < (a.w + b.w) && Math.abs(a.y - b.y) * 2 < (a.h + b.h);
+  }
+
+  function circleRectCollision(cx, cy, cr, rx, ry, rw, rh){
+    const closestX = clamp(cx, rx - rw/2, rx + rw/2);
+    const closestY = clamp(cy, ry - rh/2, ry + rh/2);
+    const dx = cx - closestX;
+    const dy = cy - closestY;
+    return (dx*dx + dy*dy) <= cr*cr;
+  }
+
+  function updateHUD(){
+    // Aunque ocultamos los indicadores por CSS, mantenemos el update por si los reactivas.
+    hudHearts.textContent = `❤️ x${state.lives}`;
+    hudCoins.textContent = `🪙 ${state.coins} / ${WIN_COINS}`;
+  }
+
+  function hideOverlay(){
+    overlay.classList.remove('show');
+  }
+
+  // ====== INPUT ======
+  let keys = new Set();
+  window.addEventListener('keydown', e=>{
+    if (['ArrowLeft','ArrowRight','a','d','A','D'].includes(e.key)) keys.add(e.key.toLowerCase());
+    if (e.key === ' '){ togglePause(); }
+  });
+  window.addEventListener('keyup', e=>{
+    keys.delete(e.key.toLowerCase());
+  });
+
+  // Touch / arrastre
+  function pointerToLocalX(ev){
+    const rect = canvas.getBoundingClientRect();
+    const x = (ev.clientX - rect.left) / rect.width * VIRTUAL_W;
+    return clamp(x, 24, VIRTUAL_W-24);
+  }
+  touchLayer.addEventListener('pointerdown', ev => { state.pointerX = pointerToLocalX(ev); });
+  touchLayer.addEventListener('pointermove', ev => {
+    if (ev.buttons === 0 && ev.pointerType !== 'touch' && state.pointerX===null) return;
+    state.pointerX = pointerToLocalX(ev);
+  });
+  touchLayer.addEventListener('pointerup', ()=>{ state.pointerX = null; });
+  touchLayer.addEventListener('pointercancel', ()=>{ state.pointerX = null; });
+  touchLayer.addEventListener('pointerleave', ()=>{ state.pointerX = null; });
+
+  // ====== SPAWN ======
+  function spawnCoin(){ // ahora "pez"
+    const x = 24 + Math.random() * (VIRTUAL_W - 48);
+    state.entities.coins.push({ x, y: -20, r: COIN.radius, vy: state.speed });
+  }
+  function spawnObst(){ // roca
+    const x = 34 + Math.random() * (VIRTUAL_W - 68);
+    const size = OBST.size * (0.9 + Math.random()*0.3);
+    state.entities.obst.push({ x, y: -40, w: size, h: size, vy: state.speed * (0.95 + Math.random()*0.2) });
+  }
+
+  // ====== UPDATE ======
+  function step(dt){
+    if (!state.running) return;
+
+    state.time += dt;
+    state.timers.coin += dt*1000;
+    state.timers.obst += dt*1000;
+
+    state.speed = SCROLL_SPEED_BASE + SCROLL_SPEED_GAIN * state.coins * 12;
+
+    // Desplazamiento suave del fondo
+    state.bgScroll = (state.bgScroll + BG_SCROLL_SPEED * dt) % VIRTUAL_H;
+
+    // input
+    let dir = 0;
+    if (keys.has('arrowleft') || keys.has('a')) dir -= 1;
+    if (keys.has('arrowright') || keys.has('d')) dir += 1;
+
+    if (state.pointerX != null){
+      const dx = state.pointerX - state.boat.x;
+      const maxMove = BOAT.speed * dt;
+      state.boat.x += clamp(dx, -maxMove, maxMove);
+    } else if (dir !== 0){
+      state.boat.x += dir * BOAT.speed * dt;
     }
 
-    if (btnDialogNext) btnDialogNext.onclick = advanceDialog;
+    state.boat.x = clamp(state.boat.x, 28, VIRTUAL_W-28);
 
-    setupOrientationLock();
+    if (state.timers.coin >= COIN.spawnEveryMs){ state.timers.coin = 0; spawnCoin(); }
+    if (state.timers.obst >= OBST.spawnEveryMs){ state.timers.obst = 0; spawnObst(); }
+
+    for (const c of state.entities.coins) c.y += state.speed * dt;
+    for (const o of state.entities.obst)  o.y += o.vy * dt;
+
+    state.entities.coins = state.entities.coins.filter(c => c.y < VIRTUAL_H + 40);
+    state.entities.obst  = state.entities.obst.filter(o => o.y < VIRTUAL_H + 60);
+
+    // Colisiones
+    for (let i = state.entities.coins.length - 1; i >= 0; i--){
+      const c = state.entities.coins[i];
+      if (circleRectCollision(c.x, c.y, c.r, state.boat.x, state.boat.y, state.boat.w, state.boat.h)){
+        state.entities.coins.splice(i,1);
+        state.coins++;
+        updateHUD();
+        if (state.coins >= WIN_COINS){ win(); return; }
+      }
+    }
+
+    if (state.time*1000 > state.invulnUntil){
+      for (let i = state.entities.obst.length - 1; i >= 0; i--){
+        const o = state.entities.obst[i];
+        if (aabb({x: state.boat.x, y: state.boat.y, w: state.boat.w, h: state.boat.h}, o)){
+          state.lives--;
+          updateHUD();
+          state.invulnUntil = state.time*1000 + BOAT.invulnMs;
+          o.y += 40;
+          if (state.lives <= 0){ gameOver(); return; }
+          break;
+        }
+      }
+    }
   }
+
+  // ====== RENDER ======
+  function render(){
+    // Fondo desplazándose suavemente hacia abajo:
+    if (images.water){
+      const offsetY = - (state.bgScroll % VIRTUAL_H);
+      // Dibujamos dos veces para cubrir el wrap vertical
+      ctx.drawImage(images.water, 0, offsetY, VIRTUAL_W, VIRTUAL_H);
+      ctx.drawImage(images.water, 0, offsetY + VIRTUAL_H, VIRTUAL_W, VIRTUAL_H);
+    } else {
+      // Fallback: gradiente
+      const g = ctx.createLinearGradient(0,0,0,VIRTUAL_H);
+      g.addColorStop(0, '#0ea5e9');
+      g.addColorStop(1, '#1d4ed8');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,VIRTUAL_W,VIRTUAL_H);
+    }
+
+    // Peces (antes monedas)
+    for (const c of state.entities.coins){
+      if (images.coin){
+        const s = COIN.radius * 2;
+        ctx.drawImage(images.coin, c.x - s/2, c.y - s/2, s, s);
+      } else {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, COIN.radius, 0, Math.PI*2);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.stroke();
+      }
+    }
+
+    // Rocas (obstáculos)
+    for (const o of state.entities.obst){
+      if (images.rock){
+        ctx.drawImage(images.rock, o.x - o.w/2, o.y - o.h/2, o.w, o.h);
+      } else {
+        ctx.fillStyle = '#6b7280';
+        ctx.fillRect(o.x - o.w/2, o.y - o.h/2, o.w, o.h);
+      }
+    }
+
+    // Barco (jugador)
+    const blink = (state.time*1000 < state.invulnUntil) && (Math.floor(state.time*10)%2===0);
+    if (!blink){
+      if (images.boat){
+        ctx.drawImage(
+          images.boat,
+          state.boat.x - state.boat.w/2,
+          state.boat.y - state.boat.h/2,
+          state.boat.w,
+          state.boat.h
+        );
+      } else {
+        ctx.fillStyle = '#e11d48';
+        ctx.fillRect(state.boat.x - state.boat.w/2, state.boat.y - state.boat.h/2, state.boat.w, state.boat.h);
+      }
+    }
+  }
+
+  // ====== GAME STATE ======
+  function win(){
+    state.running = false;
+    overlay.classList.add('show');
+    overlayTitle.textContent = '¡LO HAS CONSEGUIDO!';
+    overlaySub.textContent = 'El quinto número es 3.';
+    restartBtn.classList.remove('hidden');
+    pauseBtn.textContent = '▶️';
+  }
+
+  function gameOver(){
+    state.running = false;
+    overlay.classList.add('show');
+    overlayTitle.textContent = 'Game Over 💥';
+    overlaySub.textContent = `Monedas recogidas: ${state.coins}/${WIN_COINS}`;
+    restartBtn.classList.remove('hidden');
+    pauseBtn.textContent = '▶️';
+  }
+
+  function resetGame(){
+    hideOverlay();
+    restartBtn.classList.add('hidden');
+    Object.assign(state, {
+      running: true,
+      time: 0, lastTs: 0, scroll: 0,
+      speed: SCROLL_SPEED_BASE,
+      lives: START_LIVES,
+      coins: 0,
+      invulnUntil: 0,
+      boat: { x: VIRTUAL_W/2, y: VIRTUAL_H*0.78, w: BOAT.width, h: BOAT.height },
+      pointerX: null,
+      entities: { coins: [], obst: [] },
+      timers: { coin: 0, obst: 0 },
+      bgScroll: 0
+    });
+    updateHUD();
+    pauseBtn.textContent = '⏸';
+  }
+
+  function togglePause(){
+    state.running = !state.running;
+    pauseBtn.textContent = state.running ? '⏸' : '▶️';
+    if (overlay.classList.contains('show') && state.running &&
+        overlayTitle.textContent.startsWith('Gira el móvil')){
+      return;
+    }
+    if (overlay.classList.contains('show') && state.running){
+      hideOverlay();
+    }
+  }
+
+  // ====== LOOP ======
+  function loop(ts){
+    if (!state.lastTs) state.lastTs = ts;
+    const dt = Math.min(0.05, (ts - state.lastTs) / 1000);
+    state.lastTs = ts;
+    step(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // ====== INIT ======
+  async function init(){
+    resizeCanvas();
+    updateHUD();
+    window.addEventListener('resize', resizeCanvas, { passive: true });
+    window.addEventListener('orientationchange', updateOrientation);
+
+    // Carga con logs
+    images.water = await loadImage(ASSETS.water); // Fondo.PNG
+    images.boat  = await loadImage(ASSETS.boat);
+    images.coin  = await loadImage(ASSETS.coin); // Peces.PNG
+    images.rock  = await loadImage(ASSETS.rock); // Rocas.PNG
+
+    restartBtn.addEventListener('click', resetGame);
+    pauseBtn.addEventListener('click', togglePause);
+
+    requestAnimationFrame(loop);
+  }
+
   init();
 })();
