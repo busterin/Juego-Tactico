@@ -229,29 +229,31 @@ button.primary { background: #1b76ff; color: white; border-color: #1b76ff; }
   display: none !important;
 }
 
-/* ---------- Intro estilo Fire Emblem ---------- */
-#introScene{ position: fixed; inset: 0; z-index: 11500; display: block; }
-#introScene .intro-bg{
-  position:absolute; inset:0;
-  background-image: var(--bg-url);
-  background-size: cover; background-position: center;
-  filter: brightness(.95) saturate(1.05);
+/* ---------- Intro estilo Fire Emblem (pantalla completa) ---------- */
+#introScene{
+  position: fixed; inset: 0; z-index: 11500; display: block;
+  background: #000;                    /* ← negro sólido para ocultar el fondo */
 }
+#introScene .intro-bg{
+  display:none;                        /* ya no usamos la imagen de fondo */
+}
+
 .intro-illust{
   position:absolute; inset:0;
   width:100%; height:100%;
-  object-fit: contain;               /* que se vea completa */
-  image-rendering: pixelated;
+  object-fit: cover;                   /* ← ocupa toda la pantalla */
+  object-position: center;
+  image-rendering: auto;               /* mejor para ilustraciones */
   pointer-events:none;
   animation: introFade .45s ease-out;
 }
 @keyframes introFade{ from{opacity:0; transform:scale(1.01)} to{opacity:1; transform:scale(1)} }
 
-/* Caja tipo FE: opaca, en el tercio inferior, con borde y sombra */
+/* Caja tipo FE: opaca, en el tercio inferior */
 .intro-box{
   position:absolute; left: 6%; right: 6%;
   bottom: 4%;
-  background: #0b1014;               /* opaco */
+  background: #0b1014;                 /* opaco */
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 12px;
   padding: 14px 14px 12px;
