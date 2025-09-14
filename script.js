@@ -1,4 +1,4 @@
-/* build: landscape-16x9 · Intro FE + typewriter · Diálogo Guerrera/Arquero · Combate restaurado · PNG tolerant */
+/* build: landscape-16x9 · Intro x2 + typewriter · Diálogo Guerrera/Arquero · Combate restaurado · PNG tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -29,8 +29,17 @@
   }
 
   // ---------- Intro (Fire Emblem-like) ----------
-  const INTRO_TEXT = "El reino de Orbis era un lugar de paz, donde hacía mucho que la espada y la magia no se usaban en combate y sus amables gentes disfrutaban de la vida.";
-  let introTyping = false, introTypeTimer = null;
+  const INTRO_PAGES = [
+    {
+      img: "assets/Inicio1.PNG",
+      text: "El reino de Orbis era un lugar de paz, donde hacía mucho que la espada y la magia no se usaban en combate y sus amables gentes disfrutaban de la vida."
+    },
+    {
+      img: "assets/Inicio2.PNG",
+      text: "Pero todo cambió cuando el Rey Ardiem fue traicionado y su fiel capitana de la Guardia, obligada a huir…"
+    }
+  ];
+  let introTyping = false, introTypeTimer = null, introPageIndex = 0;
 
   function typeWriterIntro(text, speed=22){
     if (!introTextEl) return;
@@ -49,6 +58,16 @@
       }
     }
     step();
+  }
+
+  function showIntroPage(idx){
+    const page = INTRO_PAGES[idx];
+    if (!page) return;
+    if (introImg) loadImgCaseTolerant(introImg, page.img);
+    if (introTextEl){
+      clearTimeout(introTypeTimer);
+      typeWriterIntro(page.text, 22);
+    }
   }
 
   // ---------- Diálogo ----------
@@ -128,7 +147,7 @@
     showCurrentDialog();
   }
 
-  // Unidades del jugador (stats como vertical)
+  // Unidades del jugador
   const makeKnight = () => ({
     id: "K", tipo: "caballero",
     fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
@@ -171,7 +190,7 @@
   const charKnight = document.getElementById("charKnight"); // Guerrera (derecha)
   const charArcher = document.getElementById("charArcher"); // Arquero (izquierda)
 
-  // Carga de imágenes de diálogo e intro
+  // Carga de imágenes de diálogo
   if (charKnight) loadImgCaseTolerant(charKnight, "assets/GuerreraDialogo.PNG");
   if (charArcher) loadImgCaseTolerant(charArcher, "assets/ArqueroDialogo.PNG");
 
@@ -549,29 +568,26 @@
     }
   }
 
-  // ---------- Init (portada → intro → diálogo → juego) ----------
+  // ---------- Init (portada → intro×2 → diálogo → juego) ----------
   function init(){
     players=[makeKnight(),makeArcher()];
     ajustarTamanoTablero(); spawnFase(); dibujarMapa();
     if (btnContinuar) btnContinuar.onclick=()=>{ overlayWin.style.display="none"; location.reload(); };
 
-    // Estado inicial: solo portada visible
+    // Estado inicial
     if (portada) portada.style.display = "flex";
     if (intro)   intro.style.display   = "none";
     if (dialog)  dialog.style.display  = "none";
     if (mapa)    mapa.style.display    = "none";
 
-    // Botón JUGAR → Intro con typewriter
+    // Botón JUGAR → Intro página 1
     if (btnJugar){
       btnJugar.onclick = ()=>{
         portada.style.display = "none";
         if (intro){
           intro.style.display = "block";
-          if (introImg) loadImgCaseTolerant(introImg, "assets/Inicio1.PNG");
-          if (introTextEl){
-            clearTimeout(introTypeTimer);
-            typeWriterIntro(INTRO_TEXT, 22);
-          }
+          introPageIndex = 0;
+          showIntroPage(introPageIndex);
         } else if (dialog){
           dlgIndex = 0; dialog.style.display = "block"; showCurrentDialog();
         } else {
@@ -584,23 +600,29 @@
     // Botón CONTINUAR de la intro
     if (btnIntroNext){
       btnIntroNext.onclick = ()=>{
+        const page = INTRO_PAGES[introPageIndex];
         if (introTyping){
           // Completar texto de golpe
           clearTimeout(introTypeTimer);
-          introTextEl.textContent = INTRO_TEXT;
+          introTextEl.textContent = page.text;
           introTextEl.classList.remove('type-cursor');
           introTyping = false;
           return;
         }
-        // Pasar a diálogo
-        if (intro) intro.style.display = "none";
-        if (dialog){
-          dlgIndex = 0;
-          dialog.style.display = "block";
-          showCurrentDialog();
+        // Siguiente página o pasar a diálogo
+        if (introPageIndex < INTRO_PAGES.length - 1){
+          introPageIndex++;
+          showIntroPage(introPageIndex);
         } else {
-          mapa.style.display = "grid";
-          setTurno("jugador");
+          if (intro) intro.style.display = "none";
+          if (dialog){
+            dlgIndex = 0;
+            dialog.style.display = "block";
+            showCurrentDialog();
+          } else {
+            mapa.style.display = "grid";
+            setTurno("jugador");
+          }
         }
         applyOrientationLock();
       };
