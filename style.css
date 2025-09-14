@@ -10,7 +10,7 @@
   --hudOffset: 0.2;
 
   /* Fondo compartido (la versión que ya te funcionaba) */
-  --bg-url: url("assets/background.png");
+  --bg-url: url("assets/background.PNG");
 }
 
 *{ box-sizing: border-box; }
