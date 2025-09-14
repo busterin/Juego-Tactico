@@ -1,4 +1,4 @@
-/* build: landscape-16x9 · Intro x2 + typewriter · Diálogo Guerrera/Arquero · Combate restaurado · PNG tolerant */
+/* build: landscape-16x9 · Intro x2 + typewriter · Diálogo Risko/Hans · Terreno intransitable · PNG tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -26,6 +26,27 @@
       else if (src.endsWith('.png')) imgEl.src = src.replace(/\.png$/, '.PNG');
       imgEl.onerror = null;
     };
+  }
+
+  // === Terreno intransitable (rellena estas listas cuando tengas coords) ===
+  // Formato: [fila, col] con filas 0..8 y cols 0..15 (tablero 9x16)
+  const MONTANAS = [
+    // ejemplo: [1,3],[1,4],[2,4]
+  ];
+  const ARBOLES = [
+    // ejemplo: [4,7],[4,8]
+  ];
+  const CASTILLO = [
+    // ejemplo: [0,7],[0,8],[1,7],[1,8]
+  ];
+  const IMPASSABLE = new Set([...MONTANAS, ...ARBOLES, ...CASTILLO].map(([f,c])=>`${f},${c}`));
+  function isImpassable(f,c){ return IMPASSABLE.has(`${f},${c}`); }
+  function terrainClass(f,c){
+    const k=`${f},${c}`;
+    if (CASTILLO.some(([rf,rc])=>rf===f&&rc===c)) return 't-castle';
+    if (MONTANAS.some(([rf,rc])=>rf===f&&rc===c)) return 't-mountain';
+    if (ARBOLES.some(([rf,rc])=>rf===f&&rc===c)) return 't-forest';
+    return '';
   }
 
   // ---------- Intro (Fire Emblem-like) ----------
@@ -72,10 +93,10 @@
 
   // ---------- Diálogo ----------
   const dialogLines = [
-    { who:'knight', name:'Guerrera', text:'Llevamos días huyendo y aún nos persiguen esos dichosos soldados.' },
-    { who:'archer', name:'Arquero',  text:'Han matado al Rey y te han acusado a ti, además ni siquiera sabemos quien fue...' },
-    { who:'knight', name:'Guerrera', text:'Tengo mis sospechss pero ninguna pruena. Eres el único mienbro de la Guardia que me queda, Hans.' },
-    { who:'archer', name:'Arquero',  text:'Te seguiré siempre, capitana. De momento sólo podemos huir, y prepárate porque ahí vienen de nuevo.' }
+    { who:'knight', name:'Risko', text:'Llevamos días huyendo y aún nos persiguen esos dichosos soldados.' },
+    { who:'archer', name:'Hans',  text:'Han matado al Rey y te han acusado a ti, además ni siquiera sabemos quien fue...' },
+    { who:'knight', name:'Risko', text:'Tengo mis sospechas pero ninguna prueba. Eres el único miembro de la Guardia que me queda, Hans.' },
+    { who:'archer', name:'Hans',  text:'Te seguiré siempre, capitana. De momento sólo podemos huir, y prepárate porque ahí vienen de nuevo.' }
   ];
   let dlgIndex = 0, typing=false, typeTimer=null, speakPopTimer=null;
 
@@ -84,7 +105,6 @@
     clearTimeout(speakPopTimer);
     const line = dialogLines[dlgIndex];
     if (!line) return;
-
     if (charKnight && charArcher){
       charKnight.style.opacity = '.6';
       charArcher.style.opacity = '.6';
@@ -95,7 +115,6 @@
         else { charArcher.classList.add('pop'); }
       }, 500);
     }
-
     if (dialogNameEl) dialogNameEl.textContent = line.name;
   }
 
@@ -147,11 +166,11 @@
     showCurrentDialog();
   }
 
-  // Unidades del jugador
+  // Unidades del jugador (nombres actualizados)
   const makeKnight = () => ({
     id: "K", tipo: "caballero",
     fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
-    vivo: true, nombre: "Caballero",
+    vivo: true, nombre: "Risko",
     hp: 100, maxHp: 100,
     retrato: "assets/player.PNG", nivel: 1, kills: 0,
     damage: 50, range: [1], acted: false, mp: PLAYER_MAX_MP
@@ -159,7 +178,7 @@
   const makeArcher = () => ({
     id: "A", tipo: "arquera",
     fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.20),
-    vivo: true, nombre: "Arquera",
+    vivo: true, nombre: "Hans",
     hp: 80, maxHp: 80,
     retrato: "assets/archer.PNG", nivel: 1, kills: 0,
     damage: 50, range: [2], acted: false, mp: PLAYER_MAX_MP
@@ -187,8 +206,8 @@
   const dialogNameEl = document.getElementById("dialogName");
   const dialogTextEl = document.getElementById("dialogText");
   const btnDialogNext = document.getElementById("btnDialogNext");
-  const charKnight = document.getElementById("charKnight"); // Guerrera (derecha)
-  const charArcher = document.getElementById("charArcher"); // Arquero (izquierda)
+  const charKnight = document.getElementById("charKnight"); // Risko (derecha)
+  const charArcher = document.getElementById("charArcher"); // Hans (izquierda)
 
   // Carga de imágenes de diálogo
   if (charKnight) loadImgCaseTolerant(charKnight, "assets/GuerreraDialogo.PNG");
@@ -272,7 +291,7 @@
       do {
         f = Math.floor(Math.random()*(ROWS - NON_PLAYABLE_BOTTOM_ROWS));
         c = Math.floor(Math.random()*COLS);
-      } while (ocupadas.has(key(f,c)));
+      } while (ocupadas.has(key(f,c)) || isImpassable(f,c) || noJugable(f));
       ocupadas.add(key(f,c));
       enemies.push({
         id:`E${Date.now()}-${i}`,
@@ -295,6 +314,12 @@
         const celda = document.createElement("div");
         celda.className = "celda";
         celda.dataset.key = key(f,c);
+
+        // Marcar terreno y bloquear eventos de click en intransitable
+        const tcls = terrainClass(f,c);
+        if (tcls) celda.classList.add(tcls);
+        if (isImpassable(f,c)) celda.style.pointerEvents = "none";
+
         if (noJugable(f)) celda.style.pointerEvents = "none";
         if (seleccionado && celdasMovibles.has(key(f,c))) celda.classList.add("movible");
         if (seleccionado && seleccionado.fila===f && seleccionado.col===c) celda.classList.add("seleccionada");
@@ -388,7 +413,7 @@
       const [f,c]=q.shift();
       for(const [df,dc] of dirs){
         const nf=f+df,nc=c+dc;
-        if(!dentro(nf,nc) || noJugable(nf)) continue;
+        if(!dentro(nf,nc) || noJugable(nf) || isImpassable(nf,nc)) continue;
         const ocupado = enemies.some(e=>e.vivo&&e.fila===nf&&e.col===nc) ||
                         players.some(p=>p.vivo&&p!==u&&p.fila===nf&&p.col===nc);
         if(ocupado) continue;
@@ -412,7 +437,7 @@
 
   // ---------- Clicks ----------
   function manejarClick(f,c){
-    if (noJugable(f)) return;
+    if (noJugable(f) || isImpassable(f,c)) return;
 
     const pj = players.find(p=>p.vivo&&p.fila===f&&p.col===c);
     const en = enemies.find(e=>e.vivo&&e.fila===f&&e.col===c);
@@ -439,7 +464,7 @@
       const esAlcanzable = celdasMovibles.has(`${f},${c}`);
       const ocupado = enemies.some(e=>e.vivo&&e.fila===f&&e.col===c) ||
                       players.some(p=>p.vivo&&p!==seleccionado&&p.fila===f&&p.col===c);
-      if (esAlcanzable && !ocupado){
+      if (esAlcanzable && !ocupado && !isImpassable(f,c)){
         const coste = distSel[f][c] || 0;
         seleccionado.fila=f; seleccionado.col=c;
         seleccionado.mp = Math.max(0, seleccionado.mp - coste);
@@ -532,7 +557,7 @@
       let mejor = manhattan(en, objetivo);
       for (const p of vivosJ){ const d = manhattan(en, p); if (d < mejor){ mejor = d; objetivo = p; } }
 
-      // moverse hasta 3 pasos
+      // moverse hasta 3 pasos evitando intransitables
       const step = (a,b)=> a<b?1:(a>b?-1:0);
       while (en.mp > 0){
         if (manhattan(en, objetivo) === 1) break;
@@ -541,7 +566,7 @@
         if (en.col  !== objetivo.col ) cand.push([en.fila, en.col + step(en.col,  objetivo.col )]);
         let moved = false;
         for (const [nf,nc] of cand){
-          if(!dentro(nf,nc) || noJugable(nf)) continue;
+          if(!dentro(nf,nc) || noJugable(nf) || isImpassable(nf,nc)) continue;
           const ocupado = enemies.some(o=>o!==en && o.vivo && o.fila===nf && o.col===nc) ||
                           players.some(p=>p.vivo && p.fila===nf && p.col===nc);
           if(!ocupado){ en.fila=nf; en.col=nc; en.mp--; moved=true; break; }
