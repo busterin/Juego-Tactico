@@ -9,7 +9,7 @@
   --hudRows: 2;
   --hudOffset: 0.2;
 
-  /* Fondo compartido */
+  /* Fondo compartido (la versión que ya te funcionaba) */
   --bg-url: url("assets/background.png");
 }
 
@@ -39,9 +39,7 @@ body{
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   z-index: 10000;
 }
-#portada .portada-img{
-  width: 100%; height: 100%; object-fit: cover; object-position: center; pointer-events: none;
-}
+#portada .portada-img{ width: 100%; height: 100%; object-fit: cover; object-position: center; pointer-events: none; }
 #portada .btn-jugar{
   position: absolute; bottom: 8%;
   padding: 14px 26px; font-size: 20px; font-weight: bold;
@@ -60,7 +58,7 @@ body{
   position:absolute; inset:0;
   width:100%; height:100%;
   object-fit: cover; object-position: center;
-  image-rendering: auto; pointer-events:none;
+  pointer-events:none;
   animation: introFade .45s ease-out;
 }
 @keyframes introFade{ from{opacity:0; transform:scale(1.01)} to{opacity:1; transform:scale(1)} }
@@ -80,7 +78,7 @@ body{
 }
 .intro-cta{ display:flex; justify-content:flex-end; }
 
-/* ---------- Escena de diálogo ---------- */
+/* ---------- Diálogo ---------- */
 #dialogScene{ position: fixed; inset: 0; z-index: 12000; display: block; }
 #dialogScene .dialog-bg{
   position: absolute; inset: 0;
@@ -91,20 +89,14 @@ body{
 
 /* Personajes: elevados para no tapar el cuadro */
 .dialog-char{
-  position: absolute;
-  bottom: 22%;           /* ↑ un poco más altos */
-  height: 58%;
-  max-width: 44vw;
-  object-fit: contain;
-  image-rendering: pixelated;
-  opacity: 0.6;
-  transition: opacity .2s ease;
-  pointer-events: none;
+  position: absolute; bottom: 22%; height: 58%; max-width: 44vw;
+  object-fit: contain; image-rendering: pixelated; opacity: 0.6;
+  transition: opacity .2s ease; pointer-events: none;
 }
 .dialog-char.left{  left: 2%;  transform: none; }
 .dialog-char.right{ right: 2%;  transform: none; }
-
 .dialog-char.speaking{ opacity: 1 !important; filter: drop-shadow(0 0 10px rgba(255,255,255,.12)); }
+
 @keyframes speak-pop { 0%{transform:translateY(0) scale(1);} 30%{transform:translateY(-3px) scale(1.03);} 60%{transform:translateY(0) scale(1);} 100%{transform:translateY(0) scale(1);} }
 .dialog-char.pop{ animation: speak-pop 1.2s ease-in-out .3s infinite; }
 
@@ -142,7 +134,7 @@ body{
 }
 .overlay-box h1{ margin: 0 0 14px 0; }
 
-/* ---------- Banner de turno ---------- */
+/* ---------- Banners ---------- */
 .turn-banner{
   position: fixed; left: 50%; top: max(10px, env(safe-area-inset-top));
   transform: translateX(-50%); z-index: 18000;
@@ -151,7 +143,7 @@ body{
   backdrop-filter: blur(3px); box-shadow: 0 6px 20px rgba(0,0,0,.35);
 }
 
-/* ---------- Banner central inicio combate ---------- */
+/* Banner central de inicio de combate */
 #battleStartBanner{
   position:fixed;
   top:50%; left:50%;
@@ -181,16 +173,14 @@ body{
   height: calc(var(--rows) * var(--cell));
   margin: auto;
   user-select: none; touch-action: manipulation;
-  border: 2px solid rgba(255,255,255,.15);
-  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,.15); border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0,0,0,.3);
   position: relative;
 }
 
-/* HUD abajo del todo y superpuesto */
+/* HUD abajo y superpuesto */
 #hud{
-  position: absolute; left: 0; right: 0;
-  bottom: 0; /* siempre pegado abajo */
+  position: absolute; left: 0; right: 0; bottom: 0;
   height: calc(var(--cell) * var(--hudRows));
   padding: 6px 8px; display: flex; flex-direction: column; gap: 6px;
   background: linear-gradient(180deg, rgba(10,14,18,.0), rgba(10,14,18,.85));
@@ -202,12 +192,12 @@ body{
 .celda.movible{ outline: 3px solid rgba(48,140,255,0.55); outline-offset: -1px; }
 .celda.seleccionada{ box-shadow: inset 0 0 0 3px #1b76ff; }
 
-/* Sprites tablero */
+/* Sprites */
 .fichaMiniImg{
   width: 90%; height: 90%; object-fit: contain; image-rendering: pixelated; position: relative; z-index: 1; pointer-events: none;
 }
 
-/* Ficha + acciones (estilo carta) */
+/* Ficha + acciones */
 #ficha{
   display: none; width: 100%; text-align: left;
   background: rgba(16,20,24,.95); color: #ddd;
@@ -272,7 +262,7 @@ button.primary{ background: #1b76ff; color: white; border-color: #1b76ff; }
   box-shadow: 0 12px 28px rgba(0,0,0,.45);
 }
 
-/* --- DEBUG: rejilla numerada --- */
+/* --- DEBUG: rejilla numerada (tecla G añade clase debug desde JS) --- */
 #mapa.debug .celda::before{
   content: attr(data-key);
   font-size: 9px; color: rgba(255,255,255,0.7);
@@ -280,16 +270,6 @@ button.primary{ background: #1b76ff; color: white; border-color: #1b76ff; }
   padding: 1px 2px; border-radius: 4px;
   position: absolute; top: 2px; left: 2px; pointer-events: none;
 }
-
-/* --- Terreno intransitable (overlay debug, opcional) --- */
-.celda.t-mountain::after,
-.celda.t-forest::after,
-.celda.t-castle::after{
-  content:""; position:absolute; inset:2px; border-radius:6px; pointer-events:none;
-}
-.celda.t-mountain::after{ background: rgba(100,100,120,.28); border: 1px dashed rgba(200,200,255,.35); }
-.celda.t-forest::after{   background: rgba(40,120,50,.25);   border: 1px dashed rgba(120,220,140,.35); }
-.celda.t-castle::after{   background: rgba(160,140,90,.28);  border: 1px solid  rgba(240,220,150,.35); }
 
 /* Ultra-compacto */
 @media (max-width: 380px){
