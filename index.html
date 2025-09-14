@@ -5,7 +5,7 @@
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=battle-start-drum">
+  <link rel="stylesheet" href="style.css?v=revert-ok-bg+battle-banner">
 </head>
 <body>
   <!-- Bloqueo por orientación vertical (el juego es horizontal) -->
@@ -21,7 +21,7 @@
     <button id="btnJugar" class="btn-jugar">JUGAR</button>
   </div>
 
-  <!-- Escena de introducción (imagen + narración) -->
+  <!-- Intro x2 (imagen + narración con typewriter) -->
   <div id="introScene" style="display:none">
     <img id="introImg" class="intro-illust" alt="Inicio">
     <div class="intro-box">
@@ -32,7 +32,7 @@
     </div>
   </div>
 
-  <!-- Escena de diálogo (Risko derecha, Hans izquierda) -->
+  <!-- Diálogo (Hans izquierda, Risko derecha) -->
   <div id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
     <img class="dialog-char left"  id="charArcher"  alt="Hans">
@@ -46,7 +46,7 @@
     </div>
   </div>
 
-  <!-- Overlay NIVEL COMPLETADO -->
+  <!-- Overlay victoria -->
   <div id="overlayWin" class="overlay" style="display:none">
     <div class="overlay-box">
       <h1>NIVEL COMPLETADO</h1>
@@ -57,11 +57,9 @@
   <!-- Banner turno -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
 
-  <!-- Banner central inicio combate -->
+  <!-- Banner central inicio combate + sonido -->
   <div id="battleStartBanner">¡COMIENZA EL COMBATE!</div>
-
-  <!-- SFX -->
-  <audio id="sfxBattleStart" preload="auto"></audio>
+  <audio id="battleStartSound" src="assets/drum.mp3" preload="auto"></audio>
 
   <!-- Tablero + HUD -->
   <div id="mapa" style="display:none">
@@ -71,6 +69,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=battle-start-drum"></script>
+  <script src="script.js?v=revert-ok-bg+battle-banner"></script>
 </body>
 </html>
