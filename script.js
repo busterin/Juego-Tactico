@@ -1,4 +1,4 @@
-/* build: landscape-16x9 · Intro x2 + typewriter · Diálogo Risko/Hans · Terreno intransitable · PNG tolerant */
+/* build: landscape-16x9 · Intro x2 + typewriter · Diálogo Risko/Hans · Terreno intransitable · Battle banner + drum · PNG/MP3 tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -18,7 +18,7 @@
   let celdasMovibles = new Set();
   let distSel = null;
 
-  // --- Helper: tolerante a .PNG/.png ---
+  // --- Helper: tolerante a .PNG/.png y .MP3/.mp3 ---
   function loadImgCaseTolerant(imgEl, src){
     imgEl.src = src;
     imgEl.onerror = ()=>{
@@ -27,9 +27,17 @@
       imgEl.onerror = null;
     };
   }
+  function loadAudioCaseTolerant(audioEl, src){
+    audioEl.src = src;
+    audioEl.onerror = ()=>{
+      if (src.endsWith('.mp3')) audioEl.src = src.replace(/\.mp3$/, '.MP3');
+      else if (src.endsWith('.MP3')) audioEl.src = src.replace(/\.MP3$/, '.mp3');
+      audioEl.onerror = null;
+    };
+  }
 
-  // === Terreno intransitable (rellena estas listas cuando tengas coords) ===
-  // Formato: [fila, col] con filas 0..8 y cols 0..15 (tablero 9x16)
+  // === Terreno intransitable (rellena estas listas con coords) ===
+  // Formato: [fila, col] con filas 0..8 y cols 0..15
   const MONTANAS = [
     // ejemplo: [1,3],[1,4],[2,4]
   ];
@@ -42,7 +50,6 @@
   const IMPASSABLE = new Set([...MONTANAS, ...ARBOLES, ...CASTILLO].map(([f,c])=>`${f},${c}`));
   function isImpassable(f,c){ return IMPASSABLE.has(`${f},${c}`); }
   function terrainClass(f,c){
-    const k=`${f},${c}`;
     if (CASTILLO.some(([rf,rc])=>rf===f&&rc===c)) return 't-castle';
     if (MONTANAS.some(([rf,rc])=>rf===f&&rc===c)) return 't-mountain';
     if (ARBOLES.some(([rf,rc])=>rf===f&&rc===c)) return 't-forest';
@@ -144,6 +151,25 @@
     typeWriterDialog(line.text);
   }
 
+  // --- Banner inicio + sonido ---
+  const battleBanner = document.getElementById("battleStartBanner");
+  const sfxBattleStart = document.getElementById("sfxBattleStart");
+  if (sfxBattleStart) {
+    loadAudioCaseTolerant(sfxBattleStart, "assets/drum.mp3"); // si tu archivo es .MP3 en mayúsculas, también lo coge
+    sfxBattleStart.volume = 0.9;
+  }
+  function showBattleStart(){
+    if (battleBanner){
+      battleBanner.style.display = "block";
+      setTimeout(()=>{ battleBanner.style.display="none"; }, 2500);
+    }
+    if (sfxBattleStart){
+      // Esto ocurre tras un clic del usuario, por lo que no debería bloquearse
+      sfxBattleStart.currentTime = 0;
+      sfxBattleStart.play().catch(()=>{/* ignorar bloqueo si lo hubiera */});
+    }
+  }
+
   function advanceDialog(){
     if (!dialog) return;
     const line = dialogLines[dlgIndex];
@@ -159,6 +185,7 @@
     if (dlgIndex >= dialogLines.length){
       dialog.style.display = "none";
       mapa.style.display = "grid";
+      showBattleStart();              // <- banner + tambor
       setTurno("jugador");
       applyOrientationLock();
       return;
@@ -315,7 +342,7 @@
         celda.className = "celda";
         celda.dataset.key = key(f,c);
 
-        // Marcar terreno y bloquear eventos de click en intransitable
+        // Terreno
         const tcls = terrainClass(f,c);
         if (tcls) celda.classList.add(tcls);
         if (isImpassable(f,c)) celda.style.pointerEvents = "none";
