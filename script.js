@@ -1,4 +1,4 @@
-/* build: landscape-16x9 · Intro x2 + typewriter · Diálogo Risko/Hans · Terreno intransitable · Battle banner + drum · PNG/MP3 tolerant */
+/* build: landscape-16x9 · Intro x2 + typewriter · Diálogo Risko/Hans · HUD abajo · Battle banner+drum · PNG tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -18,7 +18,7 @@
   let celdasMovibles = new Set();
   let distSel = null;
 
-  // --- Helper: tolerante a .PNG/.png y .MP3/.mp3 ---
+  // --- Helper: tolerante a .PNG/.png ---
   function loadImgCaseTolerant(imgEl, src){
     imgEl.src = src;
     imgEl.onerror = ()=>{
@@ -26,34 +26,6 @@
       else if (src.endsWith('.png')) imgEl.src = src.replace(/\.png$/, '.PNG');
       imgEl.onerror = null;
     };
-  }
-  function loadAudioCaseTolerant(audioEl, src){
-    audioEl.src = src;
-    audioEl.onerror = ()=>{
-      if (src.endsWith('.mp3')) audioEl.src = src.replace(/\.mp3$/, '.MP3');
-      else if (src.endsWith('.MP3')) audioEl.src = src.replace(/\.MP3$/, '.mp3');
-      audioEl.onerror = null;
-    };
-  }
-
-  // === Terreno intransitable (rellena estas listas con coords) ===
-  // Formato: [fila, col] con filas 0..8 y cols 0..15
-  const MONTANAS = [
-    // ejemplo: [1,3],[1,4],[2,4]
-  ];
-  const ARBOLES = [
-    // ejemplo: [4,7],[4,8]
-  ];
-  const CASTILLO = [
-    // ejemplo: [0,7],[0,8],[1,7],[1,8]
-  ];
-  const IMPASSABLE = new Set([...MONTANAS, ...ARBOLES, ...CASTILLO].map(([f,c])=>`${f},${c}`));
-  function isImpassable(f,c){ return IMPASSABLE.has(`${f},${c}`); }
-  function terrainClass(f,c){
-    if (CASTILLO.some(([rf,rc])=>rf===f&&rc===c)) return 't-castle';
-    if (MONTANAS.some(([rf,rc])=>rf===f&&rc===c)) return 't-mountain';
-    if (ARBOLES.some(([rf,rc])=>rf===f&&rc===c)) return 't-forest';
-    return '';
   }
 
   // ---------- Intro (Fire Emblem-like) ----------
@@ -112,6 +84,7 @@
     clearTimeout(speakPopTimer);
     const line = dialogLines[dlgIndex];
     if (!line) return;
+
     if (charKnight && charArcher){
       charKnight.style.opacity = '.6';
       charArcher.style.opacity = '.6';
@@ -122,6 +95,7 @@
         else { charArcher.classList.add('pop'); }
       }, 500);
     }
+
     if (dialogNameEl) dialogNameEl.textContent = line.name;
   }
 
@@ -151,22 +125,17 @@
     typeWriterDialog(line.text);
   }
 
-  // --- Banner inicio + sonido ---
+  // --- Banner inicio + sonido (simple, sin cambios al fondo) ---
   const battleBanner = document.getElementById("battleStartBanner");
-  const sfxBattleStart = document.getElementById("sfxBattleStart");
-  if (sfxBattleStart) {
-    loadAudioCaseTolerant(sfxBattleStart, "assets/drum.mp3"); // si tu archivo es .MP3 en mayúsculas, también lo coge
-    sfxBattleStart.volume = 0.9;
-  }
+  const battleSound  = document.getElementById("battleStartSound");
   function showBattleStart(){
     if (battleBanner){
       battleBanner.style.display = "block";
       setTimeout(()=>{ battleBanner.style.display="none"; }, 2500);
     }
-    if (sfxBattleStart){
-      // Esto ocurre tras un clic del usuario, por lo que no debería bloquearse
-      sfxBattleStart.currentTime = 0;
-      sfxBattleStart.play().catch(()=>{/* ignorar bloqueo si lo hubiera */});
+    if (battleSound){
+      battleSound.currentTime = 0;
+      battleSound.play().catch(()=>{});
     }
   }
 
@@ -185,7 +154,10 @@
     if (dlgIndex >= dialogLines.length){
       dialog.style.display = "none";
       mapa.style.display = "grid";
-      showBattleStart();              // <- banner + tambor
+
+      // Mostrar banner de inicio de combate + tambor
+      showBattleStart();
+
       setTurno("jugador");
       applyOrientationLock();
       return;
@@ -193,7 +165,7 @@
     showCurrentDialog();
   }
 
-  // Unidades del jugador (nombres actualizados)
+  // Unidades del jugador (Risko / Hans)
   const makeKnight = () => ({
     id: "K", tipo: "caballero",
     fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
@@ -318,7 +290,7 @@
       do {
         f = Math.floor(Math.random()*(ROWS - NON_PLAYABLE_BOTTOM_ROWS));
         c = Math.floor(Math.random()*COLS);
-      } while (ocupadas.has(key(f,c)) || isImpassable(f,c) || noJugable(f));
+      } while (ocupadas.has(key(f,c)));
       ocupadas.add(key(f,c));
       enemies.push({
         id:`E${Date.now()}-${i}`,
@@ -341,12 +313,6 @@
         const celda = document.createElement("div");
         celda.className = "celda";
         celda.dataset.key = key(f,c);
-
-        // Terreno
-        const tcls = terrainClass(f,c);
-        if (tcls) celda.classList.add(tcls);
-        if (isImpassable(f,c)) celda.style.pointerEvents = "none";
-
         if (noJugable(f)) celda.style.pointerEvents = "none";
         if (seleccionado && celdasMovibles.has(key(f,c))) celda.classList.add("movible");
         if (seleccionado && seleccionado.fila===f && seleccionado.col===c) celda.classList.add("seleccionada");
@@ -440,7 +406,7 @@
       const [f,c]=q.shift();
       for(const [df,dc] of dirs){
         const nf=f+df,nc=c+dc;
-        if(!dentro(nf,nc) || noJugable(nf) || isImpassable(nf,nc)) continue;
+        if(!dentro(nf,nc) || noJugable(nf)) continue;
         const ocupado = enemies.some(e=>e.vivo&&e.fila===nf&&e.col===nc) ||
                         players.some(p=>p.vivo&&p!==u&&p.fila===nf&&p.col===nc);
         if(ocupado) continue;
@@ -464,7 +430,7 @@
 
   // ---------- Clicks ----------
   function manejarClick(f,c){
-    if (noJugable(f) || isImpassable(f,c)) return;
+    if (noJugable(f)) return;
 
     const pj = players.find(p=>p.vivo&&p.fila===f&&p.col===c);
     const en = enemies.find(e=>e.vivo&&e.fila===f&&e.col===c);
@@ -491,7 +457,7 @@
       const esAlcanzable = celdasMovibles.has(`${f},${c}`);
       const ocupado = enemies.some(e=>e.vivo&&e.fila===f&&e.col===c) ||
                       players.some(p=>p.vivo&&p!==seleccionado&&p.fila===f&&p.col===c);
-      if (esAlcanzable && !ocupado && !isImpassable(f,c)){
+      if (esAlcanzable && !ocupado){
         const coste = distSel[f][c] || 0;
         seleccionado.fila=f; seleccionado.col=c;
         seleccionado.mp = Math.max(0, seleccionado.mp - coste);
@@ -584,7 +550,7 @@
       let mejor = manhattan(en, objetivo);
       for (const p of vivosJ){ const d = manhattan(en, p); if (d < mejor){ mejor = d; objetivo = p; } }
 
-      // moverse hasta 3 pasos evitando intransitables
+      // moverse hasta 3 pasos
       const step = (a,b)=> a<b?1:(a>b?-1:0);
       while (en.mp > 0){
         if (manhattan(en, objetivo) === 1) break;
@@ -593,7 +559,7 @@
         if (en.col  !== objetivo.col ) cand.push([en.fila, en.col + step(en.col,  objetivo.col )]);
         let moved = false;
         for (const [nf,nc] of cand){
-          if(!dentro(nf,nc) || noJugable(nf) || isImpassable(nf,nc)) continue;
+          if(!dentro(nf,nc) || noJugable(nf)) continue;
           const ocupado = enemies.some(o=>o!==en && o.vivo && o.fila===nf && o.col===nc) ||
                           players.some(p=>p.vivo && p.fila===nf && p.col===nc);
           if(!ocupado){ en.fila=nf; en.col=nc; en.mp--; moved=true; break; }
