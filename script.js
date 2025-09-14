@@ -72,10 +72,10 @@
 
   // ---------- Diálogo ----------
   const dialogLines = [
-    { who:'knight', name:'Guerrera', text:'Os doy la bienvenida a Tactic Heroes. Nuestro objetivo es derrotar al ejército rival.' },
-    { who:'archer', name:'Arquero',  text:'Selecciona un personaje para ver su rango y elige dónde colocarlo.' },
-    { who:'knight', name:'Guerrera', text:'La guerrera ataca si está adyacente y el arquero a dos casillas en línea recta.' },
-    { who:'archer', name:'Arquero',  text:'¡Todo listo, entremos en combate!' }
+    { who:'knight', name:'Guerrera', text:'Llevamos días huyendo y aún nos persiguen esos dichosos soldados.' },
+    { who:'archer', name:'Arquero',  text:'Han matado al Rey y te han acusado a ti, además ni siquiera sabemos quien fue...' },
+    { who:'knight', name:'Guerrera', text:'Tengo mis sospechss pero ninguna pruena. Eres el único mienbro de la Guardia que me queda, Hans.' },
+    { who:'archer', name:'Arquero',  text:'Te seguiré siempre, capitana. De momento sólo podemos huir, y prepárate porque ahí vienen de nuevo.' }
   ];
   let dlgIndex = 0, typing=false, typeTimer=null, speakPopTimer=null;
 
