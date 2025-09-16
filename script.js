@@ -623,27 +623,50 @@
   }
 
   function atacarUnidadA(u, objetivoRef){
-    const objetivo = isAliveEnemyById(objetivoRef.id);
-    if (!objetivo || !stillInRange(u, objetivo)) { botonesAccionesPara(u); return; }
-    aplicarDanyo(objetivo, u.damage, 'player');
-    renderFicha(objetivo);
-    setTimeout(()=>{
-      if(!objetivo.vivo){ u.kills=(u.kills||0)+1; }
+  const objetivo = isAliveEnemyById(objetivoRef.id);
+  if (!objetivo || !stillInRange(u, objetivo)) { botonesAccionesPara(u); return; }
 
-      // Limpiar estado del atacante
-      u.acted = true; u.mp = 0;
-      seleccionado = null; celdasMovibles.clear(); distSel=null;
-      acciones.innerHTML="";
-      dibujarMapa();
+  aplicarDanyo(objetivo, u.damage, 'player');
+  renderFicha(objetivo);
 
-      // ✅ Auto-avance si no quedan enemigos
-      checkWaveOrWin();
-      if (overlayWin.style.display === "grid") return; // ya mostró victoria
-      // Si se generó oleada nueva, seguimos en tu turno; si aún quedan, comportarse normal
-      comprobarCambioATurnoEnemigo();
-    }, 650);
-  }
+  setTimeout(()=>{
+    if(!objetivo.vivo){ u.kills=(u.kills||0)+1; }
 
+    // Limpiar estado del atacante
+    u.acted = true; 
+    u.mp = 0;
+    seleccionado = null; 
+    celdasMovibles.clear(); 
+    distSel = null;
+    acciones.innerHTML = "";
+    dibujarMapa();
+
+    // --- AVANCE DE TUTORIAL: ¡ahora sí, antes de oleadas/turnos! ---
+    if (tutorial.active){
+      if (tutorial.step === 2){
+        // Risko ya atacó
+        setTutText("Ahora selecciona a Hans.");
+        tutorial.step = 3;
+        return; // no pasar a IA ni chequear oleada todavía
+      }
+      if (tutorial.step === 5){
+        // Hans ya atacó
+        setTutText("Pulsa 'Pasar turno' para comenzar el combate real.");
+        tutorial.step = 6;
+        const hans = players.find(p=>p.nombre==="Hans" && p.vivo);
+        if (hans){ seleccionado = hans; botonesAccionesPara(hans); }
+        return; // seguimos dentro del tutorial
+      }
+    }
+
+    // ✅ Auto-avance si no quedan enemigos
+    checkWaveOrWin();
+    if (overlayWin.style.display === "grid") return; // ya mostró victoria
+
+    // Cambio de turno normal solo si no estamos en tutorial
+    comprobarCambioATurnoEnemigo();
+  }, 650);
+}
   function comprobarCambioATurnoEnemigo(){
     if (players.every(p => !p.vivo || p.acted || p.mp===0)) {
       setTurno("enemigo"); setTimeout(turnoIAEnemigos, 140);
