@@ -217,3 +217,89 @@ button.primary{ background:#1b76ff; color:white; border-color:#1b76ff; }
   .hp .value { font-size: 10px; min-width: 64px; }
   button { padding: 6px 9px; font-size: 12px; }
 }
+
+/* ---------- Escena de diálogo (ajustes globales) ---------- */
+#dialogScene{
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: block;
+}
+#dialogScene .dialog-bg{
+  position: absolute;
+  inset: 0;
+  background-image: var(--bg-url);
+  background-size: cover;
+  background-position: center;
+  filter: brightness(.95) saturate(1.05);
+}
+
+/* Personajes más ABAJO y con animaciones de entrada */
+.dialog-char{
+  position: absolute;
+  bottom: 6%;                 /* ⬅️ Antes ~18%: ahora más abajo */
+  height: 58%;
+  max-width: 44vw;
+  object-fit: contain;
+  image-rendering: pixelated;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;                 /* Por debajo de la caja */
+  transform: translateY(10px) scale(1);
+}
+
+/* Lados base (sin volteo automático) */
+.dialog-char.left  { left: 2%;  }
+.dialog-char.right { right: 2%; }
+
+/* Entrada suave (aplícalas una vez al mostrar el diálogo) */
+.dialog-char.enter-left  { animation: dlg-enter-left .48s ease-out forwards; }
+.dialog-char.enter-right { animation: dlg-enter-right .52s ease-out forwards; }
+
+@keyframes dlg-enter-left {
+  0%   { opacity: 0; transform: translate(-16px, 12px) scale(.98); }
+  100% { opacity: 1; transform: translate(0, 0)       scale(1); }
+}
+@keyframes dlg-enter-right {
+  0%   { opacity: 0; transform: translate(16px, 12px) scale(.98); }
+  100% { opacity: 1; transform: translate(0, 0)       scale(1); }
+}
+
+/* Cuando habla: “breathe” sutil y halo suave */
+.dialog-char.speaking{
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,.12));
+  animation: dlg-breathe 1.4s ease-in-out .2s infinite;
+}
+@keyframes dlg-breathe {
+  0%   { transform: translateY(0px)   scale(1.00); }
+  40%  { transform: translateY(-2px)  scale(1.02); }
+  100% { transform: translateY(0px)   scale(1.00); }
+}
+
+/* Utilidad para voltear (mirar hacia el lado contrario) */
+.dialog-char.flip {
+  transform: scaleX(-1);
+}
+
+/* ---------- Caja de diálogo SIEMPRE por delante ---------- */
+.dialog-box{
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 3.5%;
+  z-index: 5;                     /* ⬅️ Siempre por encima de los retratos */
+  background: #0b0f13;            /* ⬅️ Sin transparencia como pediste */
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px;
+  padding: 10px 12px 12px 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+}
+.dialog-name{ font-weight: 800; margin-bottom: 6px; color: #fff; letter-spacing: .2px; }
+.dialog-text{ font-size: 14px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px; white-space: pre-wrap; }
+.dialog-cta{ display: flex; justify-content: flex-end; }
+.dialog-box .small{ padding: 7px 12px; font-size: 13px; border-radius: 10px; }
+
+/* Cursor de tecleo */
+.type-cursor::after{ content: "▌"; display: inline-block; margin-left: 2px; animation: cursorBlink .9s steps(1) infinite; }
+@keyframes cursorBlink { 50% { opacity: 0; } }
