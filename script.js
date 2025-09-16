@@ -1,4 +1,4 @@
-/* build: tutorial Risko+Hans · landscape 16x9 · intro x2 · diálogo · banner combate+drum · PNG tolerant · Escena 2 (Fortaleza) */
+/* build: tutorial Risko+Hans · landscape 16x9 · intro x2 · diálogo · banner combate+drum · PNG tolerant · Escena 2 (Fortaleza) · Auto-avance oleadas + HUD fix */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -22,8 +22,8 @@
   let tutorial = {
     active: false,
     step: 0,
-    enemyR: null,  // enemigo para Risko (adyacente tras mover)
-    enemyH: null,  // enemigo para Hans (rango 2)
+    enemyR: null,
+    enemyH: null,
     targetMoveR: {f:6, c:4},
     targetMoveH: {f:6, c:3}
   };
@@ -38,9 +38,8 @@
     };
   }
 
-  // --- Helper: cambiar fondo (afecta body, diálogos, overlays que usan --bg-url) ---
+  // --- Helper: cambiar fondo (usa ruta exacta) ---
   function setBackgroundAsset(assetPathExact){
-    // Usa la ruta EXACTA (p.ej. assets/Fortaleza.PNG)
     document.documentElement.style.setProperty('--bg-url', `url("${assetPathExact}")`);
   }
 
@@ -90,15 +89,14 @@
     { who:'archer', name:'Hans',  text:'Te seguiré siempre, capitana. De momento sólo podemos huir, y prepárate porque ahí vienen de nuevo.' }
   ];
 
-  // Diálogo post-victoria (copiamos el que nos diste)
   const postBattleDialogLines = [
     { who:'archer', name:'Hans',  text:'Lo hemos conseguido, capitana.' },
     { who:'knight', name:'Risko', text:'Sí, pero es demasiado pronto para cantar victoria. Están por todas partes, ocultémonos en la fortaleza.' }
   ];
 
-  // Reutilización de motor
   let currentDialogLines = dialogLines;
-  let afterDialogAction = 'startTutorial'; // 'startTutorial' | 'startBattleScene2'
+  // 'startTutorial' (tras intro) | 'startBattleScene2' (tras diálogo en Fortaleza)
+  let afterDialogAction = 'startTutorial';
 
   let dlgIndex = 0, typing=false, typeTimer=null, speakPopTimer=null;
 
@@ -155,7 +153,7 @@
     if (dlgIndex >= currentDialogLines.length){
       dialog.style.display = "none";
 
-      // 👉 ¿Qué toca tras este diálogo?
+      // ¿Qué toca tras este diálogo?
       if (afterDialogAction === 'startTutorial'){
         startTutorial();
       } else if (afterDialogAction === 'startBattleScene2'){
@@ -359,7 +357,7 @@
     // Tutorial: restringe ataque/turno según paso
     if (tutorial.active){
       const t = tutorial.step;
-      if (t === 2){ // Ataque de Risko al enemigo R adyacente
+      if (t === 2){
         const en = tutorial.enemyR && enemies.find(e=>e.id===tutorial.enemyR.id && e.vivo);
         if (en && stillInRange(unidad, en)){
           const b=document.createElement("button");
@@ -367,7 +365,7 @@
           b.onclick=()=>atacarUnidadA(unidad,en);
           acciones.appendChild(b);
         }
-      } else if (t === 5){ // Ataque de Hans a distancia 2
+      } else if (t === 5){
         const en = tutorial.enemyH && enemies.find(e=>e.id===tutorial.enemyH.id && e.vivo);
         if (en && stillInRange(unidad, en)){
           const b=document.createElement("button");
@@ -383,7 +381,7 @@
         bTurn.onclick=()=>finishTutorialAndStartBattle();
         acciones.appendChild(bTurn);
       }
-      return; // no añadir más botones durante tutorial
+      return;
     }
 
     // Combate normal (fuera del tutorial)
@@ -467,7 +465,6 @@
     if (tutorial.active){
       const t = tutorial.step;
 
-      // Paso 0: seleccionar Risko
       if (t === 0){
         const risko = players.find(p=>p.nombre==="Risko" && p.vivo);
         if (pj === risko){
@@ -479,7 +476,6 @@
         return;
       }
 
-      // Paso 1: mover Risko a (6,4)
       if (t === 1){
         if (!seleccionado || seleccionado.nombre!=="Risko"){ return; }
         const esAlcanzable = celdasMovibles.has(`${f},${c}`);
@@ -498,10 +494,8 @@
         return;
       }
 
-      // Paso 2: atacar con Risko (botón HUD)
       if (t === 2){ return; }
 
-      // Paso 3: seleccionar Hans
       if (t === 3){
         const hans = players.find(p=>p.nombre==="Hans" && p.vivo);
         if (pj === hans){
@@ -513,7 +507,6 @@
         return;
       }
 
-      // Paso 4: mover Hans a (6,3)
       if (t === 4){
         if (!seleccionado || seleccionado.nombre!=="Hans"){ return; }
         const esAlcanzable = celdasMovibles.has(`${f},${c}`);
@@ -532,10 +525,7 @@
         return;
       }
 
-      // Paso 5: atacar con Hans (botón HUD)
       if (t === 5){ return; }
-
-      // Paso 6: pasar turno → fin tutorial
       if (t === 6){ return; }
 
       return;
@@ -610,6 +600,28 @@
     return (attacker.range || []).includes(d);
   }
 
+  // --- NUEVO: chequeo centralizado de fin de oleada/fin de nivel ---
+  function checkWaveOrWin(){
+    const anyEnemyAlive = enemies.some(e=>e.vivo);
+    if (anyEnemyAlive) return;
+
+    // No quedan enemigos
+    if (fase === 1){
+      // Pasar automáticamente a fase 2
+      fase = 2;
+      spawnFase();
+      dibujarMapa();
+      // seguimos el mismo turno (no forzamos pasar turno)
+      return;
+    }
+    if (fase === 2){
+      // Fin de nivel
+      setTurno("fin");
+      overlayWin.style.display = "grid";
+      return;
+    }
+  }
+
   function atacarUnidadA(u, objetivoRef){
     const objetivo = isAliveEnemyById(objetivoRef.id);
     if (!objetivo || !stillInRange(u, objetivo)) { botonesAccionesPara(u); return; }
@@ -617,25 +629,17 @@
     renderFicha(objetivo);
     setTimeout(()=>{
       if(!objetivo.vivo){ u.kills=(u.kills||0)+1; }
+
+      // Limpiar estado del atacante
       u.acted = true; u.mp = 0;
       seleccionado = null; celdasMovibles.clear(); distSel=null;
       acciones.innerHTML="";
       dibujarMapa();
 
-      // Avances de tutorial tras cada ataque
-      if (tutorial.active){
-        if (tutorial.step === 2){ // Risko atacó
-          setTutText("Ahora selecciona a Hans.");
-          tutorial.step = 3;
-        } else if (tutorial.step === 5){ // Hans atacó
-          setTutText("Pulsa 'Pasar turno' para comenzar el combate real.");
-          tutorial.step = 6;
-          const hans = players.find(p=>p.nombre==="Hans" && p.vivo);
-          seleccionado = hans; botonesAccionesPara(hans);
-        }
-        return;
-      }
-
+      // ✅ Auto-avance si no quedan enemigos
+      checkWaveOrWin();
+      if (overlayWin.style.display === "grid") return; // ya mostró victoria
+      // Si se generó oleada nueva, seguimos en tu turno; si aún quedan, comportarse normal
       comprobarCambioATurnoEnemigo();
     }, 650);
   }
@@ -648,10 +652,9 @@
 
   // ---------- IA Enemiga ----------
   function turnoIAEnemigos(){
-    // No hay IA durante el tutorial
     if (tutorial.active) return;
-
     if (turno !== "enemigo") return;
+
     const vivosJ = players.filter(p=>p.vivo);
     if (vivosJ.length === 0) { setTurno("fin"); return; }
 
@@ -687,17 +690,13 @@
       }
     }
 
-    players.forEach(p=>{ if(p.hp<=0) p.vivo=false; p.acted=false; p.mp = PLAYER_MAX_MP; });
+    // Tras actuar la IA, revisa si se acabó la oleada/nivel automáticamente
     dibujarMapa();
+    checkWaveOrWin();
+    if (overlayWin.style.display === "grid") return;
 
-    if (players.every(p=>!p.vivo)) { setTurno("fin"); }
-    else {
-      setTurno("jugador");
-      if (enemies.every(e=>!e.vivo)) {
-        if (fase === 1){ fase = 2; spawnFase(); dibujarMapa(); }
-        else if (fase === 2){ fase = 3; overlayWin.style.display="grid"; }
-      }
-    }
+    players.forEach(p=>{ if(p.hp<=0) p.vivo=false; p.acted=false; p.mp = PLAYER_MAX_MP; });
+    setTurno("jugador");
   }
 
   // ---------- Tutorial: helpers ----------
@@ -707,10 +706,8 @@
   function showTut(b){ if(tutOverlay){ tutOverlay.style.display = b ? "block" : "none"; } }
 
   function startTutorial(){
-    // Asegura fondo inicial (background.PNG) por si venimos de otra escena
     setBackgroundAsset("assets/background.PNG");
 
-    // Setup determinista de posiciones
     players = [
       { id:"K", tipo:"caballero", fila:6, col:3, vivo:true, nombre:"Risko", hp:100, maxHp:100, retrato:"assets/player.PNG", nivel:1, kills:0, damage:50, range:[1], acted:false, mp:PLAYER_MAX_MP },
       { id:"A", tipo:"arquera",  fila:6, col:2, vivo:true, nombre:"Hans",  hp: 80, maxHp: 80, retrato:"assets/archer.PNG", nivel:1, kills:0, damage:50, range:[2], acted:false, mp:PLAYER_MAX_MP }
@@ -743,15 +740,19 @@
 
   // ---------- Escena 2: Fortaleza ----------
   function startScene2Dialog(){
-    // Cambiamos el fondo a la Fortaleza (mayúsculas como indicaste)
+    // Cambiamos el fondo
     setBackgroundAsset("assets/Fortaleza.PNG");
+
+    // 🔧 HUD/mundo fuera para que no tape el diálogo
+    if (ficha){ ficha.style.display = "none"; ficha.innerHTML=""; }
+    if (acciones){ acciones.innerHTML = ""; }
+    if (mapa){ mapa.style.display = "none"; }
 
     // Preparamos diálogo (copiado)
     currentDialogLines = postBattleDialogLines;
     afterDialogAction = 'startBattleScene2';
     dlgIndex = 0;
 
-    // Mostramos escena de diálogo
     if (dialog){
       dialog.style.display = "block";
       showCurrentDialog();
@@ -759,15 +760,15 @@
   }
 
   function startBattleScene2(){
-    // Reset estado de combate para nueva escena (sin tutorial)
+    // Mostrar tablero y arrancar combate normal (sin tutorial)
+    mapa.style.display = "grid";
+
     tutorial.active = false;
     fase = 1;
     players = [ makeKnight(), makeArcher() ];
     enemies = [];
     seleccionado = null; celdasMovibles.clear(); distSel=null;
 
-    // Mostramos tablero y arrancamos combate normal
-    mapa.style.display = "grid";
     spawnFase();
     dibujarMapa();
     showBattleStart();
@@ -783,7 +784,6 @@
     // Botón Continuar (victoria) → pasar a Escena 2 (Fortaleza → diálogo → combate)
     if (btnContinuar) btnContinuar.onclick = () => {
       overlayWin.style.display = "none";
-      // Arrancamos la escena 2: cambia fondo y abre diálogo copiado
       startScene2Dialog();
     };
 
