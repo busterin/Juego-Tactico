@@ -1,4 +1,4 @@
-/* build: landscape 16x9 · Intro x2 + typewriter · Diálogo Risko/Hans/Guardián · Tutorial interactivo · Banner+Tambor · Auto-oleadas · Escena 2 Fortaleza+Guardián · PNG tolerant */
+/* build: landscape 16x9 · Intro x2 + typewriter · Diálogo Risko/Hans/Guardián (con parallax+SFX) · Tutorial interactivo · Banner+Tambor · Auto-oleadas · Escena 2 Fortaleza+Guardián · PNG tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -132,23 +132,24 @@
   const dialogNameEl = document.getElementById("dialogName");
   const dialogTextEl = document.getElementById("dialogText");
   const btnDialogNext = document.getElementById("btnDialogNext");
-  const charKnight = document.getElementById("charKnight"); // Risko
-  const charArcher = document.getElementById("charArcher"); // Hans
+  const dialogBg = dialog ? dialog.querySelector('.dialog-bg') : null;
+  const charKnight = document.getElementById("charKnight"); // Risko (derecha por defecto)
+  const charArcher = document.getElementById("charArcher"); // Hans (izquierda por defecto)
 
   // Creamos el contenedor del Guardián si no existe
   let charGuardian = document.getElementById("charGuardian");
-  if (!charGuardian){
+  if (!charGuardian && dialog){
     charGuardian = document.createElement("img");
     charGuardian.id = "charGuardian";
-    charGuardian.className = "dialog-char left"; // por defecto a la izquierda (hueco de Hans)
+    charGuardian.className = "dialog-char left"; // por defecto ocupa hueco de Hans
     charGuardian.style.display = "none";
     dialog.appendChild(charGuardian);
   }
 
   // Carga de imágenes de diálogo (tolerante a mayúsculas)
-  if (charKnight)  loadImgCaseTolerant(charKnight,  "assets/GuerreraDialogo.PNG");
-  if (charArcher)  loadImgCaseTolerant(charArcher,  "assets/ArqueroDialogo.PNG");
-  if (charGuardian)loadImgCaseTolerant(charGuardian,"assets/GuardianDialogo.PNG");
+  if (charKnight)   loadImgCaseTolerant(charKnight,   "assets/GuerreraDialogo.PNG");
+  if (charArcher)   loadImgCaseTolerant(charArcher,   "assets/ArqueroDialogo.PNG");
+  if (charGuardian) loadImgCaseTolerant(charGuardian, "assets/GuardianDialogo.PNG");
 
   // ---------- Banner “¡COMIENZA EL COMBATE!” + tambor ----------
   const battleBanner = document.getElementById("battleStartBanner");
@@ -163,6 +164,14 @@
       battleSound.play().catch(()=>{});
     }
   }
+
+  // ---------- SFX: Aparición del Guardián ----------
+  let guardianAppearSound = null;
+  try {
+    guardianAppearSound = new Audio("assets/guardian_appear.mp3");
+    guardianAppearSound.preload = "auto";
+    guardianAppearSound.volume = 0.9;
+  } catch(e){ /* sin audio no pasa nada */ }
 
   // ---------- Banner de turno ----------
   function showTurnBanner(text){
@@ -242,7 +251,7 @@
         hp:50, maxHp:50,
         retrato:"assets/enemy.PNG",
         damage:ENEMY_BASE_DAMAGE,
-        mpMax: ENEMY_MAX_MP // se puede sobrescribir en enemigos especiales
+        mpMax: ENEMY_MAX_MP
       });
     }
     if (turno==="jugador") players.forEach(p=>{ p.acted=false; p.mp=PLAYER_MAX_MP; });
@@ -739,52 +748,86 @@
     afterDialogAction = 'startBattleScene2';
     dlgIndex = 0;
 
-    // Reset posiciones de los retratos antes de empezar
+    // Reset disposiciones y anims
     resetDialogPortraitPositions();
+    resetDialogEnterAnimations();
 
     if (dialog){
       dialog.style.display = "block";
       showCurrentDialog();
+      attachDialogParallax(); // ⬅️ activar parallax al entrar en diálogo
     }
   }
 
-  // Colocación dinámica de retratos durante el diálogo de la Fortaleza
+  // Colocación inicial de retratos (previa a aparición del Guardián)
   function resetDialogPortraitPositions(){
     if (!charKnight || !charArcher || !charGuardian) return;
-    // Estado inicial: Hans izquierda, Risko derecha, Guardián oculto
     charGuardian.style.display = "none";
+    charGuardian.classList.remove('flip','enter-left','enter-right','speaking');
     charGuardian.classList.remove('left','right'); charGuardian.classList.add('left');
     charGuardian.style.left = "2%";  charGuardian.style.right = "";
-    charKnight.classList.remove('left','right'); charKnight.classList.add('right');
-    charArcher.classList.remove('left','right'); charArcher.classList.add('left');
+
+    charKnight.classList.remove('left','right','flip','enter-left','enter-right','speaking');
+    charKnight.classList.add('right');
     charKnight.style.right = "2%"; charKnight.style.left = "";
+
+    charArcher.classList.remove('left','right','flip','enter-left','enter-right','speaking');
+    charArcher.classList.add('left');
     charArcher.style.left = "2%";  charArcher.style.right = "";
   }
 
+  // Entrada animada de retratos (sólo una vez por bloque de diálogo)
+  let dialogEnteredOnce = false;
+  function ensureDialogEnterAnimations(){
+    if (dialogEnteredOnce) return;
+    dialogEnteredOnce = true;
+    if (charArcher) charArcher.classList.add('enter-left');
+    if (charKnight) charKnight.classList.add('enter-right');
+  }
+  function resetDialogEnterAnimations(){
+    dialogEnteredOnce = false;
+    if (charArcher)  charArcher.classList.remove('enter-left','enter-right');
+    if (charKnight)  charKnight.classList.remove('enter-left','enter-right');
+    if (charGuardian)charGuardian.classList.remove('enter-left','enter-right');
+  }
+
+  // Disposición dinámica en la fortaleza + flip de Hans + SFX aparición Guardián
+  let guardianSfxPlayed = false;
   function applyFortressDialogLayout(){
     if (currentDialogLines !== fortDialogLines) return;
     if (!charKnight || !charArcher || !charGuardian) return;
 
-    // A partir de la 3ª línea (índice 2) aparece el Guardián: él ocupa la izquierda,
-    // y Hans pasa a la derecha junto a Risko.
     const guardianHasAppeared = dlgIndex >= 2;
 
     if (guardianHasAppeared){
-      // Mostrar Guardián a la IZQUIERDA (hueco de Hans)
+      // Guardián visible a la IZQUIERDA
+      const wasHidden = (charGuardian.style.display === "none");
       charGuardian.style.display = "block";
       charGuardian.classList.remove('right'); charGuardian.classList.add('left');
       charGuardian.style.left = "2%"; charGuardian.style.right = "";
+      charGuardian.classList.remove('flip');
+      if (wasHidden){ charGuardian.classList.add('enter-left'); }
 
-      // Risko derecha (se queda)
+      // Risko permanece a la DERECHA
       charKnight.classList.remove('left'); charKnight.classList.add('right');
       charKnight.style.right = "2%"; charKnight.style.left = "";
+      charKnight.classList.remove('flip');
 
-      // Hans se mueve a la DERECHA también (ligeramente desplazado para no solaparse)
+      // Hans pasa a la DERECHA junto a Risko y SE VOLTEA para mirar al Guardián
       charArcher.classList.remove('left'); charArcher.classList.add('right');
       charArcher.style.right = "18%"; charArcher.style.left = "";
+      charArcher.classList.add('flip');
+      charArcher.classList.add('enter-right');
+
+      // SFX de aparición del Guardián (una vez)
+      if (!guardianSfxPlayed && guardianAppearSound){
+        guardianSfxPlayed = true;
+        guardianAppearSound.currentTime = 0;
+        guardianAppearSound.play().catch(()=>{});
+      }
     } else {
-      // Antes de que aparezca el Guardián, disposición normal: Hans izq, Risko dcha, Guardián oculto
       resetDialogPortraitPositions();
+      guardianSfxPlayed = false;
     }
   }
 
@@ -793,6 +836,9 @@
     clearTimeout(speakPopTimer);
     const line = currentDialogLines[dlgIndex];
     if (!line) return;
+
+    // Anim/entrada una vez
+    ensureDialogEnterAnimations();
 
     // Disposición especial para Fortaleza
     applyFortressDialogLayout();
@@ -843,6 +889,7 @@
     dlgIndex++; clearPop();
     if (dlgIndex >= currentDialogLines.length){
       dialog.style.display = "none";
+      detachDialogParallax(); // ⬅️ quitar parallax al salir del diálogo
       if (afterDialogAction === 'startTutorial'){
         startTutorial();
       } else if (afterDialogAction === 'startBattleScene2'){
@@ -908,6 +955,38 @@
     applyOrientationLock();
   }
 
+  // ---------- Parallax del fondo en diálogos ----------
+  let parallaxAttached = false;
+  let lastPx = 0, lastPy = 0;
+  function onDialogPointerMove(e){
+    if (!dialogBg) return;
+    const rect = dialog.getBoundingClientRect();
+    // Obtener posición normalizada -1..1
+    const x = ( (e.clientX ?? (e.touches && e.touches[0].clientX) ?? rect.width/2) - rect.left ) / rect.width  * 2 - 1;
+    const y = ( (e.clientY ?? (e.touches && e.touches[0].clientY) ?? rect.height/2) - rect.top  ) / rect.height * 2 - 1;
+    // Movimiento sutil
+    const maxShift = 8; // px
+    const tx = -x * maxShift;
+    const ty = -y * maxShift * 0.6;
+    // Evitar repintar si casi no cambia
+    if (Math.abs(tx - lastPx) < 0.5 && Math.abs(ty - lastPy) < 0.5) return;
+    lastPx = tx; lastPy = ty;
+    dialogBg.style.transform = `translate(${tx}px, ${ty}px) scale(1.02)`;
+  }
+  function attachDialogParallax(){
+    if (parallaxAttached || !dialog) return;
+    parallaxAttached = true;
+    dialog.addEventListener('mousemove', onDialogPointerMove, { passive:true });
+    dialog.addEventListener('touchmove', onDialogPointerMove, { passive:true });
+  }
+  function detachDialogParallax(){
+    if (!parallaxAttached || !dialog) return;
+    parallaxAttached = false;
+    dialog.removeEventListener('mousemove', onDialogPointerMove);
+    dialog.removeEventListener('touchmove', onDialogPointerMove);
+    if (dialogBg){ dialogBg.style.transform = 'none'; }
+  }
+
   // ---------- Init (portada → intro ×2 → diálogo → tutorial → combate; victoria → fortaleza → diálogo → combate 2) ----------
   function init(){
     players=[makeKnight(),makeArcher()];
@@ -937,6 +1016,7 @@
           currentDialogLines = dialogLines;
           afterDialogAction = 'startTutorial';
           dlgIndex = 0; dialog.style.display = "block"; showCurrentDialog();
+          attachDialogParallax();
         } else {
           startTutorial();
         }
@@ -964,6 +1044,7 @@
             currentDialogLines = dialogLines;
             afterDialogAction = 'startTutorial';
             dlgIndex = 0; dialog.style.display = "block"; showCurrentDialog();
+            attachDialogParallax();
           } else {
             startTutorial();
           }
