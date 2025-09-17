@@ -7,15 +7,21 @@
 }
 
 *{ box-sizing: border-box; }
-
 html,body{ height:100%; }
+
 body{
   margin:0;
-  background:#000;
   font-family: system-ui, Arial, sans-serif;
   color:#fff;
   overflow:hidden;
   touch-action: manipulation;
+
+  /* 🔹 Fondo a pantalla completa para TODOS los estados (intro, diálogos, combate) */
+  background-image: var(--bg-url);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color:#000; /* por si tarda en cargar */
 }
 
 /* ---------- Portada ---------- */
@@ -69,26 +75,29 @@ body{
   font-weight:700; box-shadow:0 12px 28px rgba(0,0,0,.45);
 }
 
-/* ---------- Intro ---------- */
+/* ---------- Intro (cuadro SIEMPRE ABAJO) ---------- */
 #introScene{
   position:fixed; inset:0; z-index:11000;
-  display:none; flex-direction:column;
-  justify-content:flex-end; align-items:center;
-  background:#000;
+  display:none;
 }
 .intro-bg{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover;
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover; /* la imagen ya llena toda la pantalla */
 }
 .intro-box{
-  position:relative; z-index:2;
-  background:rgba(7,12,16,1);
-  color:#fff; padding:18px;
-  width:min(92vw, 920px);
-  margin:0 4% 5% 4%;
+  position:absolute; /* 🔹 anclar abajo */
+  left:4%; right:4%; bottom:3%;
+  background:rgba(7,12,16,1); /* sin transparencia */
+  color:#fff;
+  padding:18px;
   border-radius:12px;
   border:1px solid rgba(255,255,255,.12);
   box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  z-index:2;
+  width:auto; /* ocupa entre 4% y 96% */
+  max-width: 920px;
+  margin:0 auto;
 }
 .intro-text{ font-size:15px; line-height:1.4; min-height:3.2em; }
 .intro-cta{ text-align:right; margin-top:10px; }
@@ -99,21 +108,22 @@ body{
 #dialogScene{
   position:fixed; inset:0; z-index:12000; display:none;
 }
+/* El fondo de diálogo usa el del body; mantenemos una capa por si quieres filtros */
 #dialogScene .dialog-bg{
   position:absolute; inset:0;
-  background-image: var(--bg-url);
-  background-size:cover; background-position:center;
+  background: transparent;  /* 🔹 ya no repetimos la imagen aquí */
   filter: brightness(.95) saturate(1.05);
 }
+
 .dialog-char{
-  position:absolute; bottom:6%;
+  position:absolute; bottom:6%; /* más abajo como pediste */
   height:58%; max-width:44vw;
   object-fit:contain; image-rendering:pixelated;
   opacity:.9; pointer-events:none;
 }
 .dialog-char.left{ left:2%; }
 .dialog-char.right{ right:2%; }
-.dialog-char.right.stack2{ right:20%; } /* para Hans junto a Risko */
+.dialog-char.right.stack2{ right:20%; } /* Hans junto a Risko sin solapar */
 .dialog-char.left.stack2{ left:20%; }
 .dialog-char.flip{ transform: scaleX(-1); }
 
@@ -129,7 +139,7 @@ body{
 .dialog-text{ font-size:14px; line-height:1.35; min-height:3.2em; margin-bottom:10px; }
 .dialog-cta{ text-align:right; }
 
-/* ---------- Tablero ---------- */
+/* ---------- Tablero (sin fondo propio; deja ver el del body) ---------- */
 #mapa{
   display:none;
   grid-template-columns: repeat(var(--cols), var(--cell));
@@ -142,8 +152,9 @@ body{
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0,0,0,.3);
   position: relative;
-  background-image: var(--bg-url);
-  background-size: cover; background-position: center; background-repeat: no-repeat;
+
+  /* 🔹 SIN background-image aquí; el body ya rellena toda la pantalla */
+  background: transparent;
 }
 .celda{
   width:var(--cell); height:var(--cell);
