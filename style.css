@@ -1,229 +1,126 @@
 :root{
-  --cell: 40px;
+  /* Dimensiones del tablero 16:9 en horizontal */
+  --cell: 48px;          /* recalculada por JS */
   --gap: 0px;
   --cols: 16;
   --rows: 9;
+
+  /* Filas no jugables al fondo (HUD encima) */
   --npRows: 2;
 
-  --hudRows: 2;
-  --hudOffset: 0.2;
-
-  /* ⚠️ Fondo correcto en mayúsculas */
+  /* Fondo compartido (se cambia por JS con setBackgroundAsset) */
   --bg-url: url("assets/background.PNG");
 }
 
-*{ box-sizing: border-box; }
-html, body{ height: 100%; }
-body{
+/* Reset y layout base */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
   font-family: system-ui, Arial, sans-serif;
-  margin: 0; height: 100dvh; min-height: -webkit-fill-available;
-  color:#fff; overflow:hidden; display:flex; flex-direction:column;
+  color: #fff;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
-
   background-image: var(--bg-url);
-  background-size: cover; background-position: center; background-repeat: no-repeat;
-  background-color:#000;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #000;
 }
 
 /* ---------- Portada ---------- */
-#portada{ position:fixed; inset:0; background:#000; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:10000; }
-#portada .portada-img{ width:100%; height:100%; object-fit:cover; object-position:center; pointer-events:none; }
-#portada .btn-jugar{
-  position:absolute; bottom:8%;
-  padding:14px 26px; font-size:20px; font-weight:bold;
-  border-radius:12px; border:2px solid #145a32;
-  background:linear-gradient(180deg,#27ae60,#1e8449); color:#fff; cursor:pointer;
-  box-shadow:0 4px 14px rgba(0,0,0,.4);
+#portada {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
 }
-#portada .btn-jugar:hover{ background:linear-gradient(180deg,#2ecc71,#229954); }
+#portada .portada-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+#btnJugar {
+  position: absolute;
+  bottom: 10%;
+  padding: 14px 26px;
+  font-size: 20px;
+  font-weight: 800;
+  border-radius: 12px;
+  border: 2px solid #145a32;
+  background: linear-gradient(180deg, #27ae60, #1e8449);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+}
+#btnJugar:hover { background: linear-gradient(180deg, #2ecc71, #229954); }
 
-/* ---------- Intro ---------- */
-#introScene{ position:fixed; inset:0; z-index:11500; display:block; background:#000; }
-.intro-illust{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; pointer-events:none; }
+/* ---------- Escena de INTRO ---------- */
+#introScene{
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: none;
+}
+#introScene .intro-bg {
+  position: absolute;
+  inset: 0;
+}
+#introImg{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;        /* La imagen ocupa toda la pantalla */
+  object-position: center;
+}
 .intro-box{
-  position:absolute; left:6%; right:6%; bottom:4%;
-  background:#0b1014; border:1px solid rgba(255,255,255,.14);
-  border-radius:12px; padding:14px 14px 12px; box-shadow:0 10px 24px rgba(0,0,0,.35);
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 4%;
+  background: #0b1218;    /* opaca */
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
 }
-.intro-text{ font-size:15px; line-height:1.45; color:#e6ecf4; min-height:3.2em; margin-bottom:10px; white-space:pre-wrap; }
-.intro-cta{ display:flex; justify-content:flex-end; }
-
-/* ---------- Diálogo ---------- */
-#dialogScene{ position:fixed; inset:0; z-index:12000; display:block; }
-#dialogScene .dialog-bg{
-  position:absolute; inset:0; background-image:var(--bg-url);
-  background-size:cover; background-position:center; filter:brightness(.95) saturate(1.05);
+.intro-text{
+  font-size: 15px;
+  line-height: 1.35;
+  color: #e6ecf4;
+  min-height: 3.2em;
+  white-space: pre-wrap;
 }
-.dialog-char{
-  position:absolute; bottom:22%; height:58%; max-width:44vw; object-fit:contain;
-  image-rendering:pixelated; opacity:.6; transition:opacity .2s ease; pointer-events:none;
+.intro-cta{
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
 }
-.dialog-char.left{ left:2%; transform:none; }
-.dialog-char.right{ right:2%; transform:none; }
-.dialog-char.speaking{ opacity:1 !important; filter:drop-shadow(0 0 10px rgba(255,255,255,.12)); }
-@keyframes speak-pop { 0%{transform:translateY(0) scale(1);} 30%{transform:translateY(-3px) scale(1.03);} 60%{transform:translateY(0) scale(1);} 100%{transform:translateY(0) scale(1);} }
-.dialog-char.pop{ animation:speak-pop 1.2s ease-in-out .3s infinite; }
-
-.dialog-box{
-  position:absolute; left:4%; right:4%; bottom:4%;
-  background:#0b1014; border:1px solid rgba(255,255,255,.14);
-  border-radius:12px; padding:10px 12px 12px; box-shadow:0 10px 24px rgba(0,0,0,.35);
+.type-cursor::after{
+  content: "▌";
+  display: inline-block;
+  margin-left: 2px;
+  animation: cursorBlink .9s steps(1) infinite;
 }
-.dialog-name{ font-weight:800; margin-bottom:6px; color:#fff; letter-spacing:.2px; }
-.dialog-text{ font-size:14px; line-height:1.35; color:#e6ecf4; min-height:3.2em; margin-bottom:10px; white-space:pre-wrap; }
-.dialog-cta{ display:flex; justify-content:flex-end; }
-.dialog-box .small{ padding:7px 12px; font-size:13px; border-radius:10px; }
-.type-cursor::after{ content:"▌"; display:inline-block; margin-left:2px; animation:cursorBlink .9s steps(1) infinite; }
 @keyframes cursorBlink { 50% { opacity: 0; } }
 
-/* ---------- Overlay victoria ---------- */
-.overlay{ position:fixed; inset:0; z-index:9999; display:grid; place-items:center; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); }
-.overlay::before{
-  content:""; position:absolute; inset:0; z-index:-1; background-image:var(--bg-url); background-size:cover; background-position:center; transform:scale(1.02); filter:brightness(0.9);
-}
-.overlay-box{
-  background:#101418; border:1px solid rgba(255,255,255,.15);
-  border-radius:14px; padding:22px 20px; width:min(90vw, 420px); text-align:center; box-shadow:0 12px 28px rgba(0,0,0,.45);
-}
-.overlay-box h1{ margin:0 0 14px 0; }
-
-/* ---------- Banners ---------- */
-.turn-banner{
-  position:fixed; left:50%; top:max(10px, env(safe-area-inset-top)); transform:translateX(-50%); z-index:18000;
-  background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.25); color:#fff;
-  padding:8px 14px; border-radius:12px; font-weight:800; letter-spacing:.4px; text-transform:uppercase;
-  backdrop-filter:blur(3px); box-shadow:0 6px 20px rgba(0,0,0,.35);
-}
-
-/* Banner central inicio de combate */
-#battleStartBanner{
-  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-  font-size:2.5rem; font-weight:bold; color:#fff;
-  padding:20px 40px; background:rgba(0,0,0,0.75);
-  border:2px solid #fff; border-radius:12px; z-index:20000; display:none;
-  animation:fadeInOut 2.5s ease-out forwards;
-}
-@keyframes fadeInOut{
-  0%{opacity:0; transform:translate(-50%,-50%) scale(0.95);}
-  10%{opacity:1; transform:translate(-50%,-50%) scale(1);}
-  90%{opacity:1; transform:translate(-50%,-50%) scale(1);}
-  100%{opacity:0; transform:translate(-50%,-50%) scale(1.05);}
-}
-
-/* ---------- Tablero 16x9 ---------- */
-#mapa{
-  flex:1 1 auto; display:grid;
-  grid-template-columns: repeat(var(--cols), var(--cell));
-  grid-template-rows: repeat(var(--rows), var(--cell));
-  gap:var(--gap);
-  width:calc(var(--cols) * var(--cell));
-  height:calc(var(--rows) * var(--cell));
-  margin:auto; user-select:none; touch-action:manipulation;
-  border:2px solid rgba(255,255,255,.15); border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,.3);
-  position:relative;
-}
-
-/* HUD abajo y superpuesto */
-#hud{
-  position:absolute; left:0; right:0; bottom:0;
-  height:calc(var(--cell) * var(--hudRows));
-  padding:6px 8px; display:flex; flex-direction:column; gap:6px;
-  background:linear-gradient(180deg, rgba(10,14,18,.0), rgba(10,14,18,.85));
-  pointer-events:auto; z-index:15000;
-}
-
-/* Celdas y selección */
-.celda{ width:var(--cell); height:var(--cell); display:grid; place-items:center; cursor:pointer; position:relative; z-index:0; }
-.celda.movible{ outline:3px solid rgba(48,140,255,0.55); outline-offset:-1px; }
-.celda.seleccionada{ box-shadow: inset 0 0 0 3px #1b76ff; }
-
-/* Objetivo del tutorial */
-.celda.tut-target{
-  outline:3px dashed #ffd54a !important; outline-offset:-1px;
-  animation:tutPulse 1s ease-in-out infinite;
-}
-@keyframes tutPulse{ 0%{box-shadow:0 0 0 0 rgba(255,213,74,.6);} 100%{box-shadow:0 0 0 8px rgba(255,213,74,0);} }
-
-/* Sprites */
-.fichaMiniImg{ width:90%; height:90%; object-fit:contain; image-rendering:pixelated; position:relative; z-index:1; pointer-events:none; }
-
-/* Ficha + acciones */
-#ficha{ display:none; width:100%; text-align:left; background:rgba(16,20,24,.95); color:#ddd; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:6px 8px; }
-.card{ display:grid; grid-template-columns:52px 1fr; gap:8px; align-items:center; }
-.card .portrait{ width:52px; height:52px; border-radius:8px; background-size:cover; background-position:center; background-repeat:no-repeat; border:1px solid rgba(255,255,255,.12); }
-.card .name{ font-weight:800; margin:0 0 4px 0; color:#fff; }
-.meta{ margin:0 0 4px 0; font-size:12px; color:#c8d0df; }
-.hp{ display:flex; align-items:center; gap:6px; }
-.hp .bar{ position:relative; flex:1; height:10px; background:#243042; border:1px solid rgba(255,255,255,.12); border-radius:999px; overflow:hidden; }
-.hp .bar > span{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#2ecc71,#27ae60); transition:width .25s ease; }
-.hp .value{ font-size:11px; min-width:76px; text-align:right; color:#e6e9ef; }
-
-#acciones{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
-button{ padding:7px 10px; font-size:13px; border-radius:10px; border:1px solid #c9d2e3; background:white; color:#111; cursor:pointer; }
-button.primary{ background:#1b76ff; color:white; border-color:#1b76ff; }
-
-/* ---------- FX ---------- */
-@keyframes flash-yellow { 0% { background-color: rgba(255,230,0,.75);} 100% {background-color: transparent;} }
-@keyframes flash-red    { 0% { background-color: rgba(255,60,60,.75);}  100% {background-color: transparent;} }
-.celda.flash-player{ animation: flash-yellow .28s ease-out; }
-.celda.flash-enemy { animation: flash-red .28s ease-out; }
-
-@keyframes blink-hit { 0%,100%{opacity:1;} 50%{opacity:.12;} }
-.fichaMiniImg.blink-hit{ animation: blink-hit .6s linear 2; }
-
-@keyframes dmg-pop { 0%{ transform:translate(-50%,-10px) scale(1); opacity:1;} 100%{ transform:translate(-50%,-42px) scale(1.05); opacity:0; } }
-.dmg-float{ position:absolute; left:50%; top:8px; transform:translateX(-50%); font-weight:900; font-size:15px; padding:2px 6px; border-radius:6px; color:#111; background:#fff; border:1px solid rgba(0,0,0,.1); box-shadow:0 2px 6px rgba(0,0,0,.15); animation:dmg-pop .6s ease-out forwards; }
-.dmg-player{ border-color: rgba(255,200,0,.6); }
-.dmg-enemy{  border-color: rgba(255,80,80,.6); }
-
-@keyframes death-pop { 0%{opacity:1; transform: scale(1);} 100%{opacity:0; transform: scale(1.15);} }
-.death-pop{ animation: death-pop .35s ease-out forwards; }
-
-@keyframes screen-shake { 0% { transform: translate(0, 0); } 20% { transform: translate(-6px, 4px); } 40% { transform: translate(6px, -3px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(4px, -2px); } 100% { transform: translate(0, 0); } }
-.shake{ animation: screen-shake 0.4s ease-in-out; }
-
-/* ---------- Bloqueo orientación ---------- */
-#orientationBlocker{ position:fixed; inset:0; z-index:20000; display:grid; place-items:center; background:rgba(0,0,0,.85); backdrop-filter:blur(2px); }
-#orientationBlocker .obx{ background:#101418; color:#fff; border:1px solid rgba(255,255,255,.15); border-radius:14px; padding:18px 16px; width:min(86vw, 420px); text-align:center; font-weight:700; box-shadow:0 12px 28px rgba(0,0,0,.45); }
-
-/* ---------- Tutorial overlay (informativo, no bloquea) ---------- */
-#tutorialOverlay{
-  position:fixed; inset:0; z-index:19000;
-  pointer-events:none; /* deja pasar los clics al tablero */
-  display:none;
-}
-#tutorialOverlay .tut-box{
-  position:absolute; left:50%; bottom:8%; transform:translateX(-50%);
-  background:#101418; border:1px solid rgba(255,255,255,.18); border-radius:12px;
-  padding:10px 14px; color:#fff; font-weight:600; text-align:center;
-  max-width:min(90vw, 800px); pointer-events:auto;
-  box-shadow:0 10px 24px rgba(0,0,0,.35);
-}
-
-/* --- DEBUG: coordenadas --- */
-#mapa.debug .celda::before{
-  content: attr(data-key);
-  font-size: 9px; color: rgba(255,255,255,0.7);
-  background: rgba(0,0,0,0.45);
-  padding: 1px 2px; border-radius: 4px;
-  position: absolute; top: 2px; left: 2px; pointer-events: none;
-}
-
-/* Ultra-compacto */
-@media (max-width: 380px){
-  .card { grid-template-columns: 46px 1fr; gap: 6px; }
-  .card .portrait { width: 46px; height: 46px; }
-  .meta { font-size: 11px; }
-  .hp .value { font-size: 10px; min-width: 64px; }
-  button { padding: 6px 9px; font-size: 12px; }
-}
-
-/* ---------- Escena de diálogo (ajustes globales) ---------- */
+/* ---------- Escena de DIÁLOGO ---------- */
 #dialogScene{
   position: fixed;
   inset: 0;
   z-index: 12000;
-  display: block;
+  display: none;
 }
 #dialogScene .dialog-bg{
   position: absolute;
@@ -233,73 +130,272 @@ button.primary{ background:#1b76ff; color:white; border-color:#1b76ff; }
   background-position: center;
   filter: brightness(.95) saturate(1.05);
 }
-
-/* Personajes más ABAJO y con animaciones de entrada */
+/* Retratos: NÍTIDOS (no pixelated) */
 .dialog-char{
   position: absolute;
-  bottom: 6%;                 /* ⬅️ Antes ~18%: ahora más abajo */
+  bottom: 22%;           /* más abajo, para no tapar cuadro de texto */
   height: 58%;
   max-width: 44vw;
   object-fit: contain;
-  image-rendering: pixelated;
-  opacity: 0;
+  image-rendering: auto; /* <- importante para ilustraciones HD */
+  opacity: .6;
+  transition: opacity .2s ease;
   pointer-events: none;
-  z-index: 1;                 /* Por debajo de la caja */
-  transform: translateY(10px) scale(1);
 }
+.dialog-char.left  { left: 2%;  transform: none; }
+.dialog-char.right { right: 2%; transform: none; }
+.dialog-char.flip  { transform: scaleX(-1); }  /* Para Hans mirando al Guardián */
+.dialog-char.speaking{ opacity: 1; }
 
-/* Lados base (sin volteo automático) */
-.dialog-char.left  { left: 2%;  }
-.dialog-char.right { right: 2%; }
-
-/* Entrada suave (aplícalas una vez al mostrar el diálogo) */
-.dialog-char.enter-left  { animation: dlg-enter-left .48s ease-out forwards; }
-.dialog-char.enter-right { animation: dlg-enter-right .52s ease-out forwards; }
-
-@keyframes dlg-enter-left {
-  0%   { opacity: 0; transform: translate(-16px, 12px) scale(.98); }
-  100% { opacity: 1; transform: translate(0, 0)       scale(1); }
-}
-@keyframes dlg-enter-right {
-  0%   { opacity: 0; transform: translate(16px, 12px) scale(.98); }
-  100% { opacity: 1; transform: translate(0, 0)       scale(1); }
-}
-
-/* Cuando habla: “breathe” sutil y halo suave */
-.dialog-char.speaking{
-  opacity: 1 !important;
-  filter: drop-shadow(0 0 10px rgba(255,255,255,.12));
-  animation: dlg-breathe 1.4s ease-in-out .2s infinite;
-}
-@keyframes dlg-breathe {
-  0%   { transform: translateY(0px)   scale(1.00); }
-  40%  { transform: translateY(-2px)  scale(1.02); }
-  100% { transform: translateY(0px)   scale(1.00); }
-}
-
-/* Utilidad para voltear (mirar hacia el lado contrario) */
-.dialog-char.flip {
-  transform: scaleX(-1);
-}
-
-/* ---------- Caja de diálogo SIEMPRE por delante ---------- */
+/* Caja de diálogo: opaca y siempre delante */
 .dialog-box{
   position: absolute;
   left: 4%;
   right: 4%;
-  bottom: 3.5%;
-  z-index: 5;                     /* ⬅️ Siempre por encima de los retratos */
-  background: #0b0f13;            /* ⬅️ Sin transparencia como pediste */
+  bottom: 4%;
+  background: #0b1218;   /* opaca */
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 12px;
   padding: 10px 12px 12px 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  z-index: 12100;
 }
 .dialog-name{ font-weight: 800; margin-bottom: 6px; color: #fff; letter-spacing: .2px; }
 .dialog-text{ font-size: 14px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px; white-space: pre-wrap; }
 .dialog-cta{ display: flex; justify-content: flex-end; }
 .dialog-box .small{ padding: 7px 12px; font-size: 13px; border-radius: 10px; }
 
-/* Cursor de tecleo */
-.type-cursor::after{ content: "▌"; display: inline-block; margin-left: 2px; animation: cursorBlink .9s steps(1) infinite; }
-@keyframes cursorBlink { 50% { opacity: 0; } }
+button { padding: 7px 10px; font-size: 13px; border-radius: 10px; border: 1px solid #c9d2e3; background: white; color: #111; cursor: pointer; }
+button.primary { background: #1b76ff; color: white; border-color: #1b76ff; }
+
+/* ---------- Overlay victoria ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
+}
+.overlay::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--bg-url);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: scale(1.02);
+  filter: brightness(0.9);
+}
+.overlay-box{
+  background: #101418;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px;
+  padding: 22px 20px;
+  width: min(90vw, 420px);
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(0,0,0,.45);
+}
+.overlay-box h1{ margin: 0 0 14px 0; }
+
+/* ---------- Banner de turno ---------- */
+.turn-banner{
+  position: fixed;
+  left: 50%;
+  top: max(10px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  z-index: 8000;
+  background: rgba(0,0,0,.6);
+  border: 1px solid rgba(255,255,255,.25);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  backdrop-filter: blur(3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  display: none;
+}
+
+/* ---------- Banner COMIENZA EL COMBATE ---------- */
+#battleStartBanner{
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 25000;
+  background: rgba(0,0,0,.7);
+  font-size: 42px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.6);
+}
+
+/* ---------- Tablero 16x9 ---------- */
+#mapa {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-template-rows: repeat(var(--rows), var(--cell));
+  gap: var(--gap);
+  width: calc(var(--cols) * var(--cell));
+  height: calc(var(--rows) * var(--cell));
+  margin: auto;
+  user-select: none;
+  touch-action: manipulation;
+  border: 2px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.3);
+  position: relative;
+}
+.celda { width: var(--cell); height: var(--cell); display: grid; place-items: center; cursor: pointer; position: relative; z-index: 0; }
+.celda.movible { outline: 3px solid rgba(48,140,255,0.55); outline-offset: -1px; }
+.celda.seleccionada{ box-shadow: inset 0 0 0 3px #1b76ff; }
+
+/* Sprites del tablero: pixel-art nítido */
+.fichaMiniImg {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* HUD (ficha + acciones) FIJO al pie, sobre el mapa */
+#hud{
+  position: fixed;
+  left: 0; right: 0;
+  bottom: 0;
+  z-index: 12050;  /* por encima del tablero */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  pointer-events: auto;
+}
+#ficha {
+  display: none;
+  width: min(920px, 96vw);
+  margin: 0 auto;
+  background: rgba(16,20,24,.92);
+  color: #ddd;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+.card {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.card .portrait {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(255,255,255,.12);
+}
+.card .name { font-weight: 800; margin: 0 0 4px 0; color:#fff; }
+.meta { margin: 0 0 4px 0; font-size: 12px; color: #c8d0df; }
+.hp { display: flex; align-items: center; gap: 6px; }
+.hp .bar { position: relative; flex: 1; height: 10px; background: #243042; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; overflow: hidden; }
+.hp .bar > span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width .25s ease; }
+.hp .value { font-size: 11px; min-width: 76px; text-align: right; color:#e6e9ef; }
+#acciones {
+  width: min(920px, 96vw);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* ---------- FX ---------- */
+@keyframes flash-yellow { 0% { background-color: rgba(255,230,0,.75);} 100% {background-color: transparent;} }
+@keyframes flash-red    { 0% { background-color: rgba(255,60,60,.75);}  100% {background-color: transparent;} }
+.celda.flash-player { animation: flash-yellow .28s ease-out; }
+.celda.flash-enemy  { animation: flash-red .28s ease-out; }
+@keyframes blink-hit { 0%,100%{opacity:1;} 50%{opacity:.12;} }
+.fichaMiniImg.blink-hit { animation: blink-hit .6s linear 2; }
+@keyframes dmg-pop { 0%{ transform:translate(-50%,-10px) scale(1); opacity:1;} 100%{ transform:translate(-50%,-42px) scale(1.05); opacity:0; } }
+.dmg-float { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); font-weight: 900; font-size: 15px; padding: 2px 6px; border-radius: 6px; color:#111; background:#fff; border:1px solid rgba(0,0,0,.1); box-shadow: 0 2px 6px rgba(0,0,0,.15); animation: dmg-pop .6s ease-out forwards; }
+.dmg-player { border-color: rgba(255,200,0,.6); }
+.dmg-enemy  { border-color: rgba(255,80,80,.6); }
+@keyframes death-pop { 0%{opacity:1; transform: scale(1);} 100%{opacity:0; transform: scale(1.15);} }
+.death-pop { animation: death-pop .35s ease-out forwards; }
+@keyframes screen-shake {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-6px, 4px); }
+  40% { transform: translate(6px, -3px); }
+  60% { transform: translate(-4px, 2px); }
+  80% { transform: translate(4px, -2px); }
+  100% { transform: translate(0, 0); }
+}
+.shake { animation: screen-shake 0.4s ease-in-out; }
+
+/* ---------- Bloqueo vertical ---------- */
+#orientationBlocker{
+  position: fixed; inset: 0; z-index: 20000;
+  display: none; place-items: center;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(2px);
+}
+#orientationBlocker .obx{
+  background: #101418; color: #fff;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px; padding: 18px 16px;
+  width: min(86vw, 420px); text-align: center;
+  font-weight: 700; box-shadow: 0 12px 28px rgba(0,0,0,.45);
+}
+
+/* ---------- Tutorial Overlay ---------- */
+#tutorialOverlay{
+  position: fixed; inset: 0; z-index: 22000;
+  display: none;
+  /* IMPORTANTE: no bloquear clics del HUD/mapa */
+  pointer-events: none;
+}
+#tutorialOverlay .tut-box{
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 18%;
+  width: min(900px, 94vw);
+  background: rgba(0,0,0,.85);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 700;
+  pointer-events: auto; /* solo la caja capta clic si pusieras botones */
+}
+#tutorialOverlay .tut-text{
+  font-size: 14px; color: #e6ecf4; text-align: center;
+}
+
+/* ---------- Debug rejilla (tecla G) ---------- */
+#mapa.debug .celda::after{
+  content: attr(data-key);
+  position: absolute;
+  bottom: 2px; right: 2px;
+  font-size: 9px; color: rgba(255,255,255,.8);
+}
+
+/* Ultra-compacto */
+@media (max-width: 420px){
+  .dialog-char{ height: 54%; bottom: 24%; }
+  .dialog-box{ padding: 8px 10px; }
+  #ficha .card{ grid-template-columns: 46px 1fr; gap: 6px; }
+  .card .portrait{ width: 46px; height: 46px; }
+  .meta{ font-size: 11px; }
+  .hp .value{ font-size: 10px; min-width: 64px; }
+  button{ padding: 6px 9px; font-size: 12px; }
+}
