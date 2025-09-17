@@ -387,3 +387,12 @@ button.primary { background: #1b76ff; color: white; border-color: #1b76ff; }
   .hp .value{ font-size: 10px; min-width: 64px; }
   button{ padding: 6px 9px; font-size: 12px; }
   }
+  
+  /* Asegura que los botones estén por delante de la portada-imagen */
+.portada-actions{ 
+  position: absolute;
+  bottom: 10%;
+  display: flex;
+  gap: 12px;
+  z-index: 10010;  /* <— añadido */
+}
