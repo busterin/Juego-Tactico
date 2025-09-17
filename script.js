@@ -651,28 +651,51 @@
 }
 
   function startTutorial(){
-    // Fondo del primer escenario
-    setBackgroundAsset("assets/background.PNG");
-    // Colocamos jugadores y dos enemigos en línea para el tutorial
-    players=[makeKnight(), makeArcher()];
-    enemies=[ 
-      { id:"T1", nombre:"Soldado", fila:5, col:4, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP },
-      { id:"T2", nombre:"Soldado", fila:5, col:6, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP }
-    ];
-    fase=0; // tutorial
-    seleccionado=null; celdasMovibles.clear(); distSel=null;
+  // Fondo del primer escenario
+  setBackgroundAsset("assets/background.PNG");
 
-    if (portada) portada.style.display="none";
-    if (intro)   intro.style.display="none";
-    if (dialog)  dialog.style.display="none";
-    if (mapa)    mapa.style.display="grid";
+  // Coloca jugadores
+  players = [
+    {
+      id:"K", tipo:"caballero", nombre:"Risko",
+      fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
+      vivo:true, hp:100, maxHp:100, retrato:"assets/player.PNG",
+      nivel:1, kills:0, damage:50, range:[1], acted:false, mp:PLAYER_MAX_MP
+    },
+    {
+      id:"A", tipo:"arquero", nombre:"Hans",
+      fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.20),
+      vivo:true, hp:80, maxHp:80, retrato:"assets/archer.PNG",
+      nivel:1, kills:0, damage:50, range:[2], acted:false, mp:PLAYER_MAX_MP
+    }
+  ];
 
-    tutorial.active=true; tutorial.step=1; // 1: seleccionar Risko
-    dibujarMapa();
-    setTurno("jugador");
-    btnGuardar && (btnGuardar.style.display="block");
-    saveGame('auto');
-  }
+  // Enemigos tutorial (en línea recta para mostrar ataque de Risko y Hans)
+  enemies = [
+    { id:"T1", nombre:"Soldado", fila:5, col:4, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP },
+    { id:"T2", nombre:"Soldado", fila:5, col:6, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP }
+  ];
+
+  // Estado tutorial
+  tutorial.active = true;
+  tutorial.step = 1;       // 1: seleccionar Risko
+  tutorial.targetR = { f:6, c:4 }; // destino sugerido para Risko
+  tutorial.targetH = { f:6, c:6 }; // destino sugerido para Hans
+
+  // Limpieza UI
+  seleccionado = null; celdasMovibles.clear(); distSel = null;
+
+  // Mostrar tablero
+  if (portada) portada.style.display="none";
+  if (intro)   intro.style.display="none";
+  if (dialog)  dialog.style.display="none";
+  mapa.style.display="grid";
+
+  dibujarMapa();
+  setTurno("jugador");
+  btnGuardar && (btnGuardar.style.display="block");
+  saveGame('auto');
+}
 
   // 🔧 HOTFIX: combate real tras tutorial
   function startBattleScene1Core(){
