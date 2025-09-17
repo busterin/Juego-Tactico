@@ -1,4 +1,4 @@
-/* build: landscape-16x9 · Save/Load · Intro x4 · Tutorial paso a paso restaurado · Risko/Hans/Guardian · Rejilla G */
+/* build: landscape-16x9 · Save/Load · Intro x4 · Tutorial restaurado · Risko/Hans/Guardian · Rejilla G · HOTFIX combate */
 (function(){
   // --- Grid 16x9 ---
   const ROWS = 9, COLS = 16;
@@ -498,23 +498,17 @@
 
     setTimeout(()=>{
       if(!objetivo.vivo){ u.kills=(u.kills||0)+1; }
+
       u.acted = true; u.mp = 0;
       seleccionado = null; celdasMovibles.clear(); distSel=null;
-      acciones.innerHTML=""; dibujarMapa();
+      acciones.innerHTML=""; 
+      dibujarMapa();
 
-      // Tutorial flow
-      if (tutorial.active){
-        if (tutorial.step===3 && u.id==="K"){
-          tutorial.step=4; // Seleccionar Hans
-        } else if (tutorial.step===6 && u.id==="A"){
-          tutorial.active=false;
-          startBattleScene1Core(); // inicia el combate real
-          return;
-        }
-      }
-
+      // 🔧 Primero comprobamos oleada/fin (puede crear una nueva oleada sin esperar turno)
       checkWaveOrWin();
       if (overlayWin && overlayWin.style.display === "grid") return;
+
+      // Si no hay nueva oleada ni fin, evaluar cambio al turno enemigo
       comprobarCambioATurnoEnemigo();
     }, 500);
   }
@@ -558,8 +552,11 @@
       }
     }
 
-    dibujarMapa(); checkWaveOrWin();
+    dibujarMapa();
+    checkWaveOrWin();
     if (overlayWin && overlayWin.style.display === "grid") return;
+
+    // 🔧 Reseteo de acciones del jugador y devolución de turno
     players.forEach(p=>{ if(p.hp<=0) p.vivo=false; p.acted=false; p.mp = PLAYER_MAX_MP; });
     setTurno("jugador");
   }
@@ -589,13 +586,35 @@
     }
     if (turno==="jugador") players.forEach(p=>{ p.acted=false; p.mp=PLAYER_MAX_MP; });
   }
+
+  // 🔧 HOTFIX: avance automático de oleadas / victoria
   function checkWaveOrWin(){
+    // Si aún queda algún enemigo vivo, nada que hacer
     if (enemies.some(e=>e.vivo)) return;
-    if (fase === 1){
-      fase = 2; spawnFase(); dibujarMapa(); saveGame('auto'); return;
+
+    // Si estábamos en tutorial, saltamos al combate real
+    if (tutorial.active) {
+      startBattleScene1Core();
+      return;
     }
+
+    // Oleadas de combate normal
+    if (fase === 1){
+      fase = 2;
+      spawnFase();     // nueva oleada
+      // turno jugador al iniciar nueva oleada
+      players.forEach(p=>{ if(p.vivo){ p.acted=false; p.mp=PLAYER_MAX_MP; } });
+      setTurno("jugador");
+      dibujarMapa();
+      saveGame('auto');
+      return;
+    }
+
     if (fase === 2){
-      setTurno("fin"); if (overlayWin) overlayWin.style.display="grid"; saveGame('auto'); return;
+      // Victoria total
+      setTurno("fin");
+      if (overlayWin) overlayWin.style.display = "grid";
+      saveGame('auto');
     }
   }
 
@@ -603,13 +622,10 @@
   const tutorial = {
     active:false,
     step:0,
-    targetR:{f:6,c:4}, // destino recomendado Risko
-    targetH:{f:6,c:6}  // destino recomendado Hans
+    targetR:{f:6,c:4},
+    targetH:{f:6,c:6}
   };
-  function tutorialMarkMoveTarget(){
-    // Sólo visual (pintamos .movible y una clase de objetivo con CSS si quisieras)
-    // Ya con celdasMovibles basta; el gating lo hacemos en manejarClick/ataque
-  }
+  function tutorialMarkMoveTarget(){ /* visual opcional */ }
 
   // ---------- Escenas ----------
   const makeKnight = () => ({
@@ -636,10 +652,12 @@
   function startTutorial(){
     // Fondo del primer escenario
     setBackgroundAsset("assets/background.PNG");
-    // Colocamos jugadores y un enemigo “dummy” para el tutorial (alineado en línea recta)
+    // Colocamos jugadores y dos enemigos en línea para el tutorial
     players=[makeKnight(), makeArcher()];
-    enemies=[ { id:"T1", nombre:"Soldado", fila:5, col:4, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP },
-              { id:"T2", nombre:"Soldado", fila:5, col:6, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP } ];
+    enemies=[ 
+      { id:"T1", nombre:"Soldado", fila:5, col:4, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP },
+      { id:"T2", nombre:"Soldado", fila:5, col:6, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP }
+    ];
     fase=0; // tutorial
     seleccionado=null; celdasMovibles.clear(); distSel=null;
 
@@ -655,12 +673,31 @@
     saveGame('auto');
   }
 
+  // 🔧 HOTFIX: combate real tras tutorial
   function startBattleScene1Core(){
-    // Arranca combate real (fase 1 -> 2)
-    fase=1; enemies=[]; spawnFase(); dibujarMapa(); showBattleStart(); setTurno("jugador"); saveGame('auto');
+    // Desactivar tutorial y limpiar selecciones
+    tutorial.active = false;
+    seleccionado = null; celdasMovibles.clear(); distSel = null;
+
+    // Fondo del primer escenario
+    setBackgroundAsset("assets/background.PNG");
+
+    // Jugadores listos para combatir (resetea "acted" y MP)
+    players.forEach(p => { p.vivo = p.hp > 0; p.acted = false; p.mp = PLAYER_MAX_MP; });
+
+    // Fase 1 normal → Fase 2 cuando mueran
+    fase = 1;
+    enemies = [];
+    spawnFase();          // crea enemigos
+    dibujarMapa();        // pinta tablero
+    showBattleStart();    // banner + sonido
+    setTurno("jugador");  // turno jugador
+    btnGuardar && (btnGuardar.style.display="block");
+    saveGame('auto');
   }
+
   function startBattleScene1(){
-    startTutorial(); // el flujo es: Intro → Diálogo → Tutorial → Combate real
+    startTutorial(); // Intro → Diálogo → Tutorial → Combate real
   }
 
   function startScene2Dialog(){
@@ -687,7 +724,7 @@
     fase = 1;
     spawnFase();
 
-    // Guardián
+    // Guardián (abajo del todo, centro)
     const lastPlayableRow = ROWS - NON_PLAYABLE_BOTTOM_ROWS - 1; // 6
     const centerCol = Math.floor(COLS / 2); // 8
     enemies.push({
