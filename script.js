@@ -1,4 +1,4 @@
-/* build: 16x9 landscape · Save/Load · Intro x2 · Tutorial · Fortaleza · Guardian · Diálogos clásicos · Banner+Tambor · PNG tolerant */
+/* build: 16x9 landscape · Save/Load · Intro x2 · Tutorial · Fortaleza · Guardian · Diálogos clásicos · Banner+Tambor · PNG tolerant · Stacks diálogo */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -37,6 +37,7 @@
 
   // --- Helper: tolerante a .PNG/.png ---
   function loadImgCaseTolerant(imgEl, src){
+    if(!imgEl) return;
     imgEl.src = src;
     imgEl.onerror = ()=>{
       if (src.endsWith('.PNG')) imgEl.src = src.replace(/\.PNG$/, '.png');
@@ -45,7 +46,7 @@
     };
   }
 
-  // --- Helper: cambiar fondo ---
+  // --- Helper: cambiar fondo (se pasa ruta exacta) ---
   function setBackgroundAsset(assetPathExact){
     document.documentElement.style.setProperty('--bg-url', `url("${assetPathExact}")`);
   }
@@ -77,7 +78,6 @@
     }
     step();
   }
-
   function showIntroPage(idx){
     const page = INTRO_PAGES[idx];
     if (!page) return;
@@ -116,10 +116,12 @@
   function setActiveSpeaker(){
     const line = currentDialogLines[dlgIndex];
     if (!line) return;
-    [charKnight,charArcher,charGuardian].forEach(el=>{ if(el) el.style.opacity=".6"; });
-    if (line.who === 'knight'  && charKnight)   charKnight.style.opacity = '1';
-    if (line.who === 'archer'  && charArcher)   charArcher.style.opacity = '1';
-    if (line.who === 'guardian'&& charGuardian) charGuardian.style.opacity = '1';
+    [charKnight,charArcher,charGuardian].forEach(el=>{ if(el) el.classList.remove('speaking'); if(el) el.style.opacity=".6"; });
+
+    if (line.who === 'knight'  && charKnight)   { charKnight.style.opacity='1';   charKnight.classList.add('speaking'); }
+    if (line.who === 'archer'  && charArcher)   { charArcher.style.opacity='1';   charArcher.classList.add('speaking'); }
+    if (line.who === 'guardian'&& charGuardian) { charGuardian.style.opacity='1'; charGuardian.classList.add('speaking'); }
+
     if (dialogNameEl) dialogNameEl.textContent = line.name;
   }
 
@@ -175,30 +177,44 @@
     showCurrentDialog();
   }
 
-  // --- Disposición de retratos (clásico) ---
+  /* --- Disposición de retratos (base y fortaleza) --- */
   function resetDialogPortraitPositions(){
     if (!charKnight || !charArcher) return;
-    charKnight.classList.remove('left','flip'); charKnight.classList.add('right'); // Risko derecha
-    charArcher.classList.remove('right','flip'); charArcher.classList.add('left'); // Hans izquierda
+
+    // Risko a la derecha
+    charKnight.classList.remove('left','flip','stack2');
+    charKnight.classList.add('right');
+
+    // Hans a la izquierda (base)
+    charArcher.classList.remove('right','flip','stack2');
+    charArcher.classList.add('left');
+
+    // Guardián oculto por defecto en la izquierda
     if (charGuardian){
       charGuardian.style.display = "none";
-      charGuardian.classList.remove('right','flip'); charGuardian.classList.add('left');
+      charGuardian.classList.remove('right','flip','stack2');
+      charGuardian.classList.add('left');
     }
   }
 
   function applyFortressDialogLayout(){
     if (currentDialogLines !== fortDialogLines) return;
     if (!charKnight || !charArcher || !charGuardian) return;
+
     const guardianHasAppeared = dlgIndex >= 2;
     if (guardianHasAppeared){
-      charGuardian.style.display = "block";         // Guardián a la izquierda
-      charGuardian.classList.remove('right','flip'); charGuardian.classList.add('left');
+      // Guardián visible a la izquierda
+      charGuardian.style.display = "block";
+      charGuardian.classList.remove('right','flip','stack2');
+      charGuardian.classList.add('left');
 
-      charKnight.classList.remove('left'); charKnight.classList.add('right'); // Risko derecha
+      // Risko a la derecha (principal)
+      charKnight.classList.remove('left','flip','stack2');
+      charKnight.classList.add('right');
 
-      // Hans pasa a la derecha con Risko PERO volteado para mirar al guardián
-      charArcher.classList.remove('left'); charArcher.classList.add('right');
-      charArcher.classList.add('flip');
+      // Hans se desplaza a la derecha CON separación y volteado
+      charArcher.classList.remove('left');
+      charArcher.classList.add('right','stack2','flip');
     } else {
       resetDialogPortraitPositions();
     }
@@ -241,8 +257,8 @@
   const dialogNameEl = document.getElementById("dialogName");
   const dialogTextEl = document.getElementById("dialogText");
   const btnDialogNext = document.getElementById("btnDialogNext");
-  const charKnight = document.getElementById("charKnight");   // Risko (derecha)
-  const charArcher = document.getElementById("charArcher");   // Hans (izquierda por defecto)
+  const charKnight = document.getElementById("charKnight");   // Risko
+  const charArcher = document.getElementById("charArcher");   // Hans
   let   charGuardian = document.getElementById("charGuardian");
   if (!charGuardian && dialog){
     charGuardian = document.createElement("img");
@@ -255,7 +271,7 @@
   if (charArcher)   loadImgCaseTolerant(charArcher,   "assets/ArqueroDialogo.PNG");
   if (charGuardian) loadImgCaseTolerant(charGuardian, "assets/GuardianDialogo.PNG");
 
-  // Botón flotante Guardar (creado si no existe)
+  // Botón flotante Guardar (si no existiera)
   let btnGuardar = document.getElementById("btnGuardar");
   if (!btnGuardar){
     btnGuardar = document.createElement('button');
@@ -272,15 +288,6 @@
     if (battleBanner){
       battleBanner.style.display = "flex";
       setTimeout(()=>{ battleBanner.style.display="none"; }, 2500);
-    } else {
-      const banner = document.createElement("div");
-      Object.assign(banner.style,{
-        position:"fixed", inset:"0", display:"flex", alignItems:"center", justifyContent:"center",
-        fontSize:"42px", fontWeight:"900", color:"#fff", background:"rgba(0,0,0,.7)", zIndex:"25000"
-      });
-      banner.textContent = "¡COMIENZA EL COMBATE!";
-      document.body.appendChild(banner);
-      setTimeout(()=>banner.remove(),2000);
     }
     if (battleSound){
       battleSound.currentTime = 0;
@@ -443,7 +450,7 @@
           b.onclick=()=>atacarUnidadA(unidad,en);
           acciones.appendChild(b);
         }
-      } else if (t === 5){ // Hans ataca a rango 2
+      } else if (t === 5){ // Hans a rango 2
         const en = tutorial.enemyH && enemies.find(e=>e.id===tutorial.enemyH.id && e.vivo);
         if (en && stillInRange(unidad, en)){
           const b=document.createElement("button");
@@ -686,13 +693,13 @@
       fase = 2;
       spawnFase();
       dibujarMapa();
-      saveGame('auto'); // autoguardado cambio de oleada
+      saveGame('auto');
       return;
     }
     if (fase === 2){
       setTurno("fin");
       overlayWin.style.display = "grid";
-      saveGame('auto'); // autoguardado victoria
+      saveGame('auto');
       return;
     }
   }
@@ -828,7 +835,7 @@
     setTutText("Primero, selecciona a Risko.");
     ajustarTamanoTablero(); dibujarMapa(); applyOrientationLock();
 
-    saveGame('auto'); // autoguardado al empezar tutorial
+    saveGame('auto');
   }
 
   function finishTutorialAndStartBattle(){
@@ -958,12 +965,10 @@
         dialog: { which: getCurrentDialogId(), index: dlgIndex },
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-      if (mode==='manual'){
-        flashToast('Progreso guardado');
-      }
+      if (mode==='manual'){ flashToast('Progreso guardado'); }
     }catch(e){
       console.error('Error guardando:', e);
-      flashToast('No se pudo guardar');
+      if (mode==='manual') flashToast('No se pudo guardar');
     }
   }
 
@@ -977,12 +982,10 @@
       if (!raw) return false;
       const save = JSON.parse(raw);
 
-      // Restaurar estado principal
       sceneId = save.sceneId || 'intro';
       turno   = save.turno || 'jugador';
       fase    = save.fase ?? 1;
 
-      // Fondo (limpiar url("..."))
       const bg = (save.background||'').trim();
       if (bg){
         setBackgroundAsset(bg.replace(/^url\((.*)\)$/,'$1').replace(/^"(.*)"$/,'$1'));
@@ -992,7 +995,6 @@
       enemies = (save.enemies||[]).map(o=>Object.assign({}, o));
       tutorial = Object.assign({}, tutorial, save.tutorial||{});
 
-      // Ocultar/mostrar escenas según sceneId
       if (portada) portada.style.display = "none";
       btnGuardar.style.display = 'block';
 
@@ -1056,7 +1058,6 @@
 
   function newGame(){
     try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
-    // Flujo estándar: Intro → Diálogo1 → Tutorial
     sceneId = 'intro';
     if (portada) portada.style.display = "none";
     if (dialog)  dialog.style.display  = "none";
@@ -1092,13 +1093,10 @@
     }catch(e){}
   }
 
-  // ---------- Escena 2: helper ----------
-  function startBattleScene2FromWin(){
-    overlayWin.style.display = "none";
-    startScene2Dialog();
-  }
-
   // ---------- INIT ----------
+  const battleStartBanner = document.getElementById("battleStartBanner");
+  const battleStartSound  = document.getElementById("battleStartSound");
+
   function init(){
     // Estado base de UI
     if (portada) {
@@ -1110,16 +1108,22 @@
     if (mapa)    mapa.style.display    = "none";
     btnGuardar.style.display = 'none';
 
-    // Pre-draw invisible para evitar saltos (no altera flujo)
+    // Pre-draw (no altera flujo)
     players=[makeKnight(),makeArcher()];
     ajustarTamanoTablero(); spawnFase(); dibujarMapa();
-    hookWinContinue();
 
-    // Nueva partida (onclick normal)
-    if (btnNueva) {
-      btnNueva.onclick = ()=> newGame();
+    // Hook victoria → escena 2
+    if (btnContinuar){
+      btnContinuar.onclick = () => {
+        overlayWin.style.display = "none";
+        startScene2Dialog();
+      };
     }
-    // Cargar partida (onclick normal)
+
+    // Nueva partida
+    if (btnNueva) btnNueva.onclick = ()=> newGame();
+
+    // Cargar partida
     if (btnCargar){
       btnCargar.onclick = ()=> {
         const ok = loadGame();
@@ -1127,7 +1131,7 @@
       };
     }
 
-    // TRIPLE SEGURO: exportar funciones + delegación global
+    // TRIPLE SEGURO
     window.TH_newGame  = function(){ newGame(); };
     window.TH_loadGame = function(){ loadGame(); };
     document.addEventListener('click', (ev)=>{
@@ -1137,7 +1141,7 @@
       if (btnCP){ ev.preventDefault(); loadGame(); }
     });
 
-    // Intro → siguiente / diálogo 1
+    // Intro → siguiente
     if (btnIntroNext){
       btnIntroNext.onclick = ()=>{
         const page = INTRO_PAGES[introPageIndex];
@@ -1166,10 +1170,10 @@
       };
     }
 
-    // Diálogo avanzar
+    // Diálogo → avanzar
     if (btnDialogNext) btnDialogNext.onclick = ()=>{
       advanceDialog();
-      saveGame('auto'); // guardar índice de diálogo
+      saveGame('auto');
     };
 
     // Debug rejilla (G)
@@ -1182,7 +1186,6 @@
     setupOrientationLock();
   }
 
-  // Enganchar init cuando el DOM esté listo
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
