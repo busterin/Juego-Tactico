@@ -1207,3 +1207,15 @@
     init();
   }
 })();
+
+// Exponer funciones globales para los onclick del HTML
+window.TH_newGame  = function(){ newGame(); };
+window.TH_loadGame = function(){ loadGame(); };
+
+// Delegado universal (por si el DOM cambia o se retrasa init)
+document.addEventListener('click', (ev)=>{
+  const btnNueva  = ev.target.closest('#btnNuevaPartida');
+  const btnCargar = ev.target.closest('#btnCargarPartida');
+  if (btnNueva)  { ev.preventDefault(); newGame(); }
+  if (btnCargar) { ev.preventDefault(); loadGame(); }
+});
