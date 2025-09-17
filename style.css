@@ -16,12 +16,12 @@ body{
   overflow:hidden;
   touch-action: manipulation;
 
-  /* 🔹 Fondo a pantalla completa para TODOS los estados (intro, diálogos, combate) */
+  /* 🔹 Fondo a pantalla completa para TODOS los estados */
   background-image: var(--bg-url);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-color:#000; /* por si tarda en cargar */
+  background-color:#000;
 }
 
 /* ---------- Portada ---------- */
@@ -83,7 +83,7 @@ body{
 .intro-bg{
   position:absolute; inset:0;
   width:100%; height:100%;
-  object-fit:cover; /* la imagen ya llena toda la pantalla */
+  object-fit:cover;
 }
 .intro-box{
   position:absolute; /* 🔹 anclar abajo */
@@ -95,7 +95,7 @@ body{
   border:1px solid rgba(255,255,255,.12);
   box-shadow: 0 10px 24px rgba(0,0,0,.35);
   z-index:2;
-  width:auto; /* ocupa entre 4% y 96% */
+  width:auto;
   max-width: 920px;
   margin:0 auto;
 }
@@ -108,10 +108,9 @@ body{
 #dialogScene{
   position:fixed; inset:0; z-index:12000; display:none;
 }
-/* El fondo de diálogo usa el del body; mantenemos una capa por si quieres filtros */
 #dialogScene .dialog-bg{
   position:absolute; inset:0;
-  background: transparent;  /* 🔹 ya no repetimos la imagen aquí */
+  background: transparent;  /* el body ya pone el fondo */
   filter: brightness(.95) saturate(1.05);
 }
 
@@ -139,7 +138,7 @@ body{
 .dialog-text{ font-size:14px; line-height:1.35; min-height:3.2em; margin-bottom:10px; }
 .dialog-cta{ text-align:right; }
 
-/* ---------- Tablero (sin fondo propio; deja ver el del body) ---------- */
+/* ---------- Tablero ---------- */
 #mapa{
   display:none;
   grid-template-columns: repeat(var(--cols), var(--cell));
@@ -152,9 +151,11 @@ body{
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0,0,0,.3);
   position: relative;
-
-  /* 🔹 SIN background-image aquí; el body ya rellena toda la pantalla */
   background: transparent;
+
+  /* 🔧 aseguramos clics por encima del fondo */
+  z-index: 13000;
+  pointer-events: auto;
 }
 .celda{
   width:var(--cell); height:var(--cell);
