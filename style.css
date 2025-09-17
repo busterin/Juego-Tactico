@@ -114,7 +114,7 @@ body {
 /* Personajes: MÁS ABAJO, nítidos (sin pixelado) */
 .dialog-char{
   position: absolute;
-  bottom: 7.5%;           /* ↓ más abajo aún en todos los diálogos */
+  bottom: 7.5%;           /* ↓ más abajo en todos los diálogos */
   height: 56%;
   max-width: 44vw;
   object-fit: contain;
@@ -319,6 +319,44 @@ button.primary{ background:#1b76ff; color:white; border-color:#1b76ff; }
   background: #101418; color: #fff; border: 1px solid rgba(255,255,255,.15);
   border-radius: 14px; padding: 18px 16px; width: min(86vw, 420px); text-align: center; font-weight: 700;
   box-shadow: 0 12px 28px rgba(0,0,0,.45);
+}
+
+/* --- Botón Guardar: fijo arriba-derecha, siempre visible --- */
+#btnGuardar{
+  position: fixed;
+  right: max(10px, env(safe-area-inset-right));
+  top:  max(10px, env(safe-area-inset-top));
+  z-index: 19500;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+}
+#btnGuardar:hover{
+  background: rgba(0,0,0,.75);
+}
+
+/* --- Rejilla numerada de debug (G) --- */
+.celda .grid-label{
+  display: none;                /* por defecto oculta */
+  position: absolute;
+  left: 2px;
+  top:  2px;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(255,255,255,.8);
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  pointer-events: none;
+  z-index: 2;
+}
+#mapa.debug .grid-label{ display: block; }
+#mapa.debug .celda{
+  outline: 1px dashed rgba(255,255,255,.18);
+  outline-offset: -1px;
 }
 
 /* Ajuste pantallas pequeñas */
