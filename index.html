@@ -5,11 +5,10 @@
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest">
-  <!-- Asegúrate de que style.css existe y respeta --bg-url con .PNG -->
-  <link rel="stylesheet" href="style.css?v=save-load-1">
+  <link rel="stylesheet" href="style.css?v=savefix-2">
 </head>
 <body>
-  <!-- Bloqueo por orientación (el juego es horizontal) -->
+  <!-- Bloqueo orientación (horizontal) -->
   <div id="orientationBlocker" style="display:none">
     <div class="obx">
       <p>Gira el dispositivo para jugar en horizontal</p>
@@ -18,16 +17,15 @@
 
   <!-- Portada -->
   <div id="portada">
-    <!-- La imagen de portada no debe bloquear clicks -->
     <img src="assets/Portada.PNG" alt="Portada Tactic Heroes" class="portada-img" />
     <div class="portada-actions">
-      <!-- “Triple seguro”: ids + onclick de respaldo -->
+      <!-- IDs consistentes + “triple seguro” -->
       <button id="btnNuevaPartida" class="btn" onclick="TH_newGame && TH_newGame()">NUEVA PARTIDA</button>
       <button id="btnCargarPartida" class="btn secondary" onclick="TH_loadGame && TH_loadGame()">CARGAR PARTIDA</button>
     </div>
   </div>
 
-  <!-- INTRO tipo Fire Emblem (pantalla completa) -->
+  <!-- Intro (pantalla completa) -->
   <div id="introScene" style="display:none">
     <img id="introImg" class="intro-bg" src="assets/Inicio1.PNG" alt="Introducción" />
     <div class="intro-box">
@@ -38,20 +36,17 @@
     </div>
   </div>
 
-  <!-- DIÁLOGO (Risko/Hans/Guardián) -->
+  <!-- Diálogo -->
   <div id="dialogScene" style="display:none">
-    <!-- Fondo de diálogo: usa --bg-url (definido en CSS/script) -->
     <div class="dialog-bg"></div>
 
-    <!-- Personajes -->
-    <!-- Hans a la izquierda -->
+    <!-- Hans (izquierda) -->
     <img class="dialog-char left"  id="charArcher"   src="assets/ArqueroDialogo.PNG"   alt="Hans" />
-    <!-- Risko a la derecha -->
+    <!-- Risko (derecha) -->
     <img class="dialog-char right" id="charKnight"   src="assets/GuerreraDialogo.PNG"  alt="Risko" />
-    <!-- Guardián (aparece en la escena de fortaleza) -->
+    <!-- Guardián (izquierda, aparece en fortaleza) -->
     <img class="dialog-char left"  id="charGuardian" src="assets/GuardianDialogo.PNG"  alt="Guardián" style="display:none" />
 
-    <!-- Caja de diálogo (siempre por encima) -->
     <div class="dialog-box">
       <div class="dialog-name" id="dialogName">Risko</div>
       <div class="dialog-text" id="dialogText"></div>
@@ -61,7 +56,7 @@
     </div>
   </div>
 
-  <!-- Overlay: ¡COMIENZA EL COMBATE! + audio tambor -->
+  <!-- Banner inicio combate + audio -->
   <div id="battleStartBanner">¡COMIENZA EL COMBATE!</div>
   <audio id="battleStartSound" src="assets/drum.mp3" preload="auto"></audio>
 
@@ -73,10 +68,10 @@
     </div>
   </div>
 
-  <!-- Banner de turno -->
+  <!-- Turn banner -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
 
-  <!-- Tablero 16×9 + HUD fijo inferior (ficha + acciones) -->
+  <!-- Tablero + HUD -->
   <div id="mapa" style="display:none">
     <div id="hud">
       <div id="ficha"></div>
@@ -84,17 +79,16 @@
     </div>
   </div>
 
-  <!-- Botón flotante Guardar (el script lo muestra/oculta) -->
+  <!-- Botón Guardar (flotante) -->
   <button id="btnGuardar" style="display:none">Guardar</button>
 
-  <!-- Overlay del tutorial -->
+  <!-- Overlay Tutorial -->
   <div id="tutorialOverlay" style="display:none">
     <div class="tut-box">
       <p id="tutText" class="tut-text"></p>
     </div>
   </div>
 
-  <!-- JS principal -->
-  <script src="script.js?v=save-load-1"></script>
+  <script src="script.js?v=savefix-2"></script>
 </body>
 </html>
