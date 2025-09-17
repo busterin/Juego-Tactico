@@ -1,4 +1,4 @@
-/* build: landscape 16x9 · Intro x2 + typewriter · Tutorial · Fortaleza con Guardián · Diálogos clásicos · Banner+Tambor · PNG tolerant */
+/* build: 16x9 landscape · Save/Load · Intro x2 · Tutorial · Fortaleza · Guardian · Diálogos clásicos · Banner+Tambor · PNG tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
@@ -8,6 +8,9 @@
   const PLAYER_MAX_MP = 5;
   const ENEMY_MAX_MP  = 3;
   const ENEMY_BASE_DAMAGE = 50;
+
+  // Save system
+  const SAVE_KEY = 'TH_SAVE_V1';
 
   // Estado general
   let turno = "jugador";
@@ -24,9 +27,13 @@
     step: 0,
     enemyR: null,
     enemyH: null,
-    targetMoveR: {f:6, c:4},  // casilla resaltada para Risko
-    targetMoveH: {f:6, c:3}   // casilla resaltada para Hans
+    targetMoveR: {f:6, c:4},
+    targetMoveH: {f:6, c:3}
   };
+
+  // Escena / flujo
+  // sceneId = 'intro' | 'dialog1' | 'tutorial' | 'battle1' | 'dialog2' | 'battle2'
+  let sceneId = 'intro';
 
   // --- Helper: tolerante a .PNG/.png ---
   function loadImgCaseTolerant(imgEl, src){
@@ -38,7 +45,7 @@
     };
   }
 
-  // --- Helper: cambiar fondo (usa .PNG exacto por tu librería) ---
+  // --- Helper: cambiar fondo ---
   function setBackgroundAsset(assetPathExact){
     document.documentElement.style.setProperty('--bg-url', `url("${assetPathExact}")`);
   }
@@ -86,7 +93,6 @@
   let dlgIndex = 0, typing=false, typeTimer=null;
   let afterDialogAction = null;
 
-  // Escena 1 (antes del tutorial)
   const dialogLines1 = [
     { who:'knight', name:'Risko', text:'Llevamos días huyendo y aún nos persiguen esos dichosos soldados.' },
     { who:'archer', name:'Hans',  text:'Han matado al Rey y te han acusado a ti, además ni siquiera sabemos quien fue...' },
@@ -94,7 +100,6 @@
     { who:'archer', name:'Hans',  text:'Te seguiré siempre, capitana. De momento sólo podemos huir, y prepárate porque ahí vienen de nuevo.' }
   ];
 
-  // Escena 2 (Fortaleza, aparece Guardián y Hans se voltea)
   const fortDialogLines = [
     { who:'archer',   name:'Hans',     text:'Lo hemos logrado, Capitana. Hemos podido refugiarnos en la fortaleza.' },
     { who:'knight',   name:'Risko',    text:'No cantes victoria tan rápido. Tengo un mal presentimiento.' },
@@ -223,7 +228,8 @@
   const turnBanner = document.getElementById("turnBanner");
 
   const portada = document.getElementById("portada");
-  const btnJugar = document.getElementById("btnJugar");
+  const btnNueva = document.getElementById("btnNuevaPartida");
+  const btnCargar = document.getElementById("btnCargarPartida");
 
   // Intro DOM
   const intro = document.getElementById("introScene");
@@ -250,9 +256,19 @@
   if (charArcher)   loadImgCaseTolerant(charArcher,   "assets/ArqueroDialogo.PNG");
   if (charGuardian) loadImgCaseTolerant(charGuardian, "assets/GuardianDialogo.PNG");
 
+  // Botón flotante Guardar (creado si no existe)
+  let btnGuardar = document.getElementById("btnGuardar");
+  if (!btnGuardar){
+    btnGuardar = document.createElement('button');
+    btnGuardar.id = 'btnGuardar';
+    btnGuardar.textContent = 'Guardar';
+    document.body.appendChild(btnGuardar);
+  }
+  btnGuardar.onclick = ()=> saveGame('manual');
+
   // ---------- Banner “¡COMIENZA EL COMBATE!” + tambor ----------
-  const battleBanner = document.getElementById("battleStartBanner"); // <div id="battleStartBanner">
-  const battleSound  = document.getElementById("battleStartSound");  // <audio id="battleStartSound" src="assets/drum.mp3">
+  const battleBanner = document.getElementById("battleStartBanner");
+  const battleSound  = document.getElementById("battleStartSound");
   function showBattleStart(){
     if (battleBanner){
       battleBanner.style.display = "flex";
@@ -346,7 +362,7 @@
       ocupadas.add(key(f,c));
       enemies.push({
         id:`E${Date.now()}-${i}`,
-        nombre:`Soldado ${i+1 + (fase===2?3:0)}`,  // <- cambiado
+        nombre:`Soldado ${i+1 + (fase===2?3:0)}`,
         fila:f, col:c, vivo:true,
         hp:50, maxHp:50,
         retrato:"assets/enemy.PNG",
@@ -671,11 +687,13 @@
       fase = 2;
       spawnFase();
       dibujarMapa();
+      saveGame('auto'); // autoguardado cambio de oleada
       return;
     }
     if (fase === 2){
       setTurno("fin");
       overlayWin.style.display = "grid";
+      saveGame('auto'); // autoguardado victoria
       return;
     }
   }
@@ -785,6 +803,7 @@
   function showTut(b){ if(tutOverlay){ tutOverlay.style.display = b ? "block" : "none"; } }
 
   function startTutorial(){
+    sceneId = 'tutorial';
     // Fondo del primer escenario (castillo). ¡Ojo: .PNG!
     setBackgroundAsset("assets/background.PNG");
 
@@ -800,13 +819,19 @@
     seleccionado = null; celdasMovibles.clear(); distSel=null;
     tutorial.active = true; tutorial.step = 0;
 
+    if (portada) portada.style.display = "none";
+    if (intro)   intro.style.display   = "none";
+    if (dialog)  dialog.style.display  = "none";
     mapa.style.display = "grid";
+    btnGuardar.style.display = 'block';
+
     setTurno("jugador");
     showTut(true);
-    // evitar que el overlay tape clics del HUD/mapa
     if (tutOverlay) tutOverlay.style.pointerEvents = 'none';
     setTutText("Primero, selecciona a Risko.");
     ajustarTamanoTablero(); dibujarMapa(); applyOrientationLock();
+
+    saveGame('auto'); // autoguardado al empezar tutorial
   }
 
   function finishTutorialAndStartBattle(){
@@ -818,26 +843,37 @@
     showTut(false);
     showBattleStart();
     setTurno("jugador");
+    sceneId = 'battle1';
+    saveGame('auto');
   }
 
-  // ---------- Escena 1: combate normal (por si se entra directo) ----------
+  // ---------- Escena 1: combate normal ----------
   function startBattleScene1(){
+    sceneId = 'battle1';
     setBackgroundAsset("assets/background.PNG");
     players=[makeKnight(),makeArcher()];
     fase = 1; enemies = []; seleccionado=null; celdasMovibles.clear(); distSel=null;
     mapa.style.display = "grid";
+    if (portada) portada.style.display = "none";
+    if (intro)   intro.style.display   = "none";
+    if (dialog)  dialog.style.display  = "none";
+    btnGuardar.style.display = 'block';
+
     spawnFase();
     dibujarMapa();
     showBattleStart();
     setTurno("jugador");
+    saveGame('auto');
   }
 
   // ---------- Escena 2: diálogo fortaleza → combate con Guardián ----------
   function startScene2Dialog(){
+    sceneId = 'dialog2';
     setBackgroundAsset("assets/Fortaleza.PNG");
     if (ficha){ ficha.style.display = "none"; ficha.innerHTML=""; }
     if (acciones){ acciones.innerHTML = ""; }
     if (mapa){ mapa.style.display = "none"; }
+    btnGuardar.style.display = 'block';
 
     currentDialogLines = fortDialogLines;
     afterDialogAction  = 'startBattleScene2';
@@ -848,20 +884,23 @@
       dialog.style.display = "block";
       showCurrentDialog();
     }
+    saveGame('auto');
   }
 
   function startBattleScene2(){
+    sceneId = 'battle2';
     mapa.style.display = "grid";
     tutorial.active = false;
     fase = 1;
     players = [ makeKnight(), makeArcher() ];
     enemies = [];
     seleccionado = null; celdasMovibles.clear(); distSel=null;
+    btnGuardar.style.display = 'block';
 
     // Oleada estándar
     spawnFase();
 
-    // Guardián (fondo Fortaleza ya aplicado)
+    // Guardián (Fortaleza)
     const lastPlayableRow = ROWS - NON_PLAYABLE_BOTTOM_ROWS - 1; // 6
     const centerCol = Math.floor(COLS / 2); // 8
     enemies.push({
@@ -881,6 +920,7 @@
     showBattleStart();
     setTurno("jugador");
     applyOrientationLock();
+    saveGame('auto');
   }
 
   // ---------- Botón CONTINUAR de victoria → escena 2 ----------
@@ -893,44 +933,226 @@
     }
   }
 
+  // ---------- GUARDADO / CARGA ----------
+  function getCurrentDialogId(){
+    if (currentDialogLines === dialogLines1) return 'd1';
+    if (currentDialogLines === fortDialogLines) return 'fort';
+    return null;
+  }
+
+  function saveGame(mode='manual'){
+    try{
+      const save = {
+        ver: 3,
+        ts: Date.now(),
+        sceneId,
+        background: getComputedStyle(document.documentElement).getPropertyValue('--bg-url'),
+        turno, fase,
+        players, enemies,
+        tutorial: {
+          active: tutorial.active,
+          step: tutorial.step,
+          targetMoveR: tutorial.targetMoveR,
+          targetMoveH: tutorial.targetMoveH,
+          enemyR: tutorial.enemyR,
+          enemyH: tutorial.enemyH
+        },
+        intro: { index: introPageIndex },
+        dialog: { which: getCurrentDialogId(), index: dlgIndex },
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      if (mode==='manual'){
+        flashToast('Progreso guardado');
+      }
+    }catch(e){
+      console.error('Error guardando:', e);
+      flashToast('No se pudo guardar');
+    }
+  }
+
+  function hasSave(){
+    try { return !!localStorage.getItem(SAVE_KEY); } catch(e){ return false; }
+  }
+
+  function loadGame(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const save = JSON.parse(raw);
+
+      // Restaurar estado principal
+      sceneId = save.sceneId || 'intro';
+      turno   = save.turno || 'jugador';
+      fase    = save.fase ?? 1;
+
+      // Fondo (limpiar url("..."))
+      const bg = (save.background||'').trim();
+      if (bg){
+        // bg viene como: url("assets/Algo.PNG")
+        setBackgroundAsset(bg.replace(/^url\((.*)\)$/,'$1').replace(/^"(.*)"$/,'$1'));
+      }
+
+      players = (save.players||[]).map(o=>Object.assign({}, o));
+      enemies = (save.enemies||[]).map(o=>Object.assign({}, o));
+      tutorial = Object.assign({}, tutorial, save.tutorial||{});
+
+      // Ocultar/mostrar escenas según sceneId
+      if (portada) portada.style.display = "none";
+      btnGuardar.style.display = 'block';
+
+      if (sceneId === 'intro'){
+        if (intro){ intro.style.display='block'; }
+        introPageIndex = save.intro?.index ?? 0;
+        showIntroPage(introPageIndex);
+        if (dialog) dialog.style.display='none';
+        mapa.style.display='none';
+      }
+      else if (sceneId === 'dialog1'){
+        currentDialogLines = dialogLines1;
+        afterDialogAction  = 'startTutorial';
+        dlgIndex = save.dialog?.index ?? 0;
+        resetDialogPortraitPositions();
+        if (dialog){ dialog.style.display='block'; showCurrentDialog(); }
+        if (intro) intro.style.display='none';
+        mapa.style.display='none';
+      }
+      else if (sceneId === 'tutorial'){
+        tutorial.active = true;
+        if (intro) intro.style.display='none';
+        if (dialog) dialog.style.display='none';
+        mapa.style.display='grid';
+        setTurno('jugador');
+        showTut(true); setTutText(tutorial.step===0?'Primero, selecciona a Risko.':tutTextEl?.textContent||'');
+        dibujarMapa();
+      }
+      else if (sceneId === 'battle1'){
+        if (intro) intro.style.display='none';
+        if (dialog) dialog.style.display='none';
+        mapa.style.display='grid';
+        dibujarMapa(); setTurno(turno);
+      }
+      else if (sceneId === 'dialog2'){
+        currentDialogLines = fortDialogLines;
+        afterDialogAction  = 'startBattleScene2';
+        dlgIndex = save.dialog?.index ?? 0;
+        resetDialogPortraitPositions();
+        if (dialog){ dialog.style.display='block'; showCurrentDialog(); }
+        if (intro) intro.style.display='none';
+        mapa.style.display='none';
+      }
+      else if (sceneId === 'battle2'){
+        if (intro) intro.style.display='none';
+        if (dialog) dialog.style.display='none';
+        mapa.style.display='grid';
+        dibujarMapa(); setTurno(turno);
+      }
+
+      ajustarTamanoTablero();
+      applyOrientationLock();
+      flashToast('Partida cargada');
+      return true;
+    }catch(e){
+      console.error('Error cargando:', e);
+      flashToast('No se pudo cargar');
+      return false;
+    }
+  }
+
+  function newGame(){
+    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+    // Flujo estándar: Intro → Diálogo1 → Tutorial
+    sceneId = 'intro';
+    if (portada) portada.style.display = "none";
+    if (dialog)  dialog.style.display  = "none";
+    if (intro){
+      intro.style.display = "block";
+      introPageIndex = 0;
+      showIntroPage(introPageIndex);
+    }
+    btnGuardar.style.display = 'block';
+    applyOrientationLock();
+    saveGame('auto');
+  }
+
+  // Toast simple
+  let toast;
+  function flashToast(text){
+    try{
+      if (!toast){
+        toast = document.createElement('div');
+        Object.assign(toast.style,{
+          position:'fixed', left:'50%', bottom:'16%',
+          transform:'translateX(-50%)',
+          background:'rgba(0,0,0,.75)', color:'#fff',
+          border:'1px solid rgba(255,255,255,.25)',
+          padding:'8px 12px', borderRadius:'10px',
+          fontWeight:'800', zIndex:26000, display:'none'
+        });
+        document.body.appendChild(toast);
+      }
+      toast.textContent = text;
+      toast.style.display = 'block';
+      setTimeout(()=>{ toast.style.display='none'; }, 1600);
+    }catch(e){}
+  }
+
+  // ---------- Tutorial helpers ----------
+  const tutOverlay = document.getElementById("tutorialOverlay");
+  const tutTextEl  = document.getElementById("tutText");
+  function setTutText(t){ if(tutTextEl){ tutTextEl.textContent = t; } }
+  function showTut(b){ if(tutOverlay){ tutOverlay.style.display = b ? "block" : "none"; } }
+
+  // ---------- Escena 2: helper ----------
+  function startBattleScene2FromWin(){
+    overlayWin.style.display = "none";
+    startScene2Dialog();
+  }
+
   // ---------- INIT ----------
   function init(){
     // Estado base de UI
-    if (portada) portada.style.display = "flex";
+    if (portada) {
+      portada.style.display = "flex";
+      // Habilitar o no el botón Cargar
+      if (btnCargar) btnCargar.disabled = !hasSave();
+    }
     if (intro)   intro.style.display   = "none";
     if (dialog)  dialog.style.display  = "none";
     if (mapa)    mapa.style.display    = "none";
+    btnGuardar.style.display = 'none';
 
     // Pre-draw invisible para evitar saltos
     players=[makeKnight(),makeArcher()];
     ajustarTamanoTablero(); spawnFase(); dibujarMapa();
     hookWinContinue();
 
-    // Handler robusto de JUGAR
-    if (btnJugar) {
-      if (portada) { portada.style.pointerEvents = 'auto'; portada.style.zIndex = '10000'; }
-      btnJugar.onclick = (event) => {
-        try { event?.preventDefault?.(); } catch(e){}
-        if (portada) portada.style.display = 'none';
-
-        if (intro){
-          intro.style.display = 'block';
-          introPageIndex = 0;
-          showIntroPage(introPageIndex);
-        } else if (dialog){
-          currentDialogLines = dialogLines1;
-          afterDialogAction  = 'startTutorial';
-          dlgIndex = 0;
-          dialog.style.display = 'block';
-          resetDialogPortraitPositions();
-          showCurrentDialog();
-        } else {
-          startTutorial(); // fallback directo
-        }
-        applyOrientationLock();
+    // Nueva partida
+    if (btnNueva) {
+      btnNueva.onclick = ()=>{
+        newGame();
       };
-    } else {
-      console.warn('No se encontró #btnJugar');
+    }
+
+    // Cargar partida
+    if (btnCargar){
+      btnCargar.onclick = ()=>{
+        const ok = loadGame();
+        if (!ok){
+          flashToast('No hay partida que cargar');
+        }
+      };
+    }
+
+    // Si NO hay los botones nuevos, fallback automático a flujo clásico
+    if (!btnNueva && !btnCargar){
+      // Por si aún tienes #btnJugar antiguamente:
+      const old = document.getElementById('btnJugar');
+      if (old){
+        old.onclick = ()=> newGame();
+      } else {
+        // como último recurso: arranca nueva
+        newGame();
+      }
     }
 
     // Intro → siguiente / diálogo 1
@@ -947,20 +1169,26 @@
         if (introPageIndex < INTRO_PAGES.length - 1){
           introPageIndex++;
           showIntroPage(introPageIndex);
+          saveGame('auto');
         } else {
           if (intro) intro.style.display = "none";
+          sceneId = 'dialog1';
           currentDialogLines = dialogLines1;
           afterDialogAction  = 'startTutorial';
           dlgIndex = 0; dialog.style.display = "block";
           resetDialogPortraitPositions();
           showCurrentDialog();
+          saveGame('auto');
         }
         applyOrientationLock();
       };
     }
 
     // Diálogo avanzar
-    if (btnDialogNext) btnDialogNext.onclick = advanceDialog;
+    if (btnDialogNext) btnDialogNext.onclick = ()=>{
+      advanceDialog();
+      saveGame('auto'); // guardar progreso de índice de diálogo
+    };
 
     // Debug rejilla (G)
     document.addEventListener("keydown", (e)=>{
@@ -972,7 +1200,7 @@
     setupOrientationLock();
   }
 
-  // Enganchar init cuando el DOM esté listo (para que JUGAR funcione siempre)
+  // Enganchar init cuando el DOM esté listo
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
