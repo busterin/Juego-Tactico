@@ -5,10 +5,10 @@
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=tutorial-hans">
+  <link rel="stylesheet" href="style.css?v=save-load">
 </head>
 <body>
-  <!-- Bloqueo por orientación vertical (el juego es horizontal) -->
+  <!-- Bloqueo por orientación vertical (el juego va en horizontal) -->
   <div id="orientationBlocker" style="display:none">
     <div class="obx">
       <p>Gira el dispositivo para jugar en horizontal</p>
@@ -18,25 +18,34 @@
   <!-- Portada -->
   <div id="portada">
     <img src="assets/Portada.PNG" alt="Portada Tactic Heroes" class="portada-img">
-    <button id="btnJugar" class="btn-jugar">JUGAR</button>
+    <div class="portada-actions">
+      <button id="btnNuevaPartida" class="btn">NUEVA PARTIDA</button>
+      <button id="btnCargarPartida" class="btn secondary">CARGAR PARTIDA</button>
+    </div>
   </div>
 
-  <!-- Intro x2 -->
+  <!-- Escena de INTRO (pantallas tipo Fire Emblem) -->
   <div id="introScene" style="display:none">
-    <img id="introImg" class="intro-illust" alt="Inicio">
+    <img id="introImg" class="intro-bg" src="assets/Inicio1.PNG" alt="Introducción">
     <div class="intro-box">
-      <div class="intro-text" id="introText"></div>
+      <div id="introText" class="intro-text"></div>
       <div class="intro-cta">
         <button id="btnIntroNext" class="primary small">Continuar</button>
       </div>
     </div>
   </div>
 
-  <!-- Diálogo (Hans izquierda, Risko derecha) -->
+  <!-- Escena de DIÁLOGO (Risko/Hans/Guardián) -->
   <div id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
-    <img class="dialog-char left"  id="charArcher"  alt="Hans">
-    <img class="dialog-char right" id="charKnight"  alt="Risko">
+
+    <!-- Personajes -->
+    <img class="dialog-char left"  id="charArcher"  src="assets/ArqueroDialogo.PNG"   alt="Hans">
+    <img class="dialog-char right" id="charKnight"  src="assets/GuerreraDialogo.PNG"  alt="Risko">
+    <!-- El Guadián también lo carga el script si no estuviera, pero lo dejamos ya puesto -->
+    <img class="dialog-char left"  id="charGuardian" src="assets/GuardianDialogo.PNG" alt="Guardián" style="display:none">
+
+    <!-- Caja de diálogo -->
     <div class="dialog-box">
       <div class="dialog-name" id="dialogName">Risko</div>
       <div class="dialog-text" id="dialogText"></div>
@@ -46,7 +55,11 @@
     </div>
   </div>
 
-  <!-- Overlay victoria -->
+  <!-- Overlay: ¡COMIENZA EL COMBATE! -->
+  <div id="battleStartBanner">¡COMIENZA EL COMBATE!</div>
+  <audio id="battleStartSound" src="assets/drum.mp3" preload="auto"></audio>
+
+  <!-- Overlay NIVEL COMPLETADO -->
   <div id="overlayWin" class="overlay" style="display:none">
     <div class="overlay-box">
       <h1>NIVEL COMPLETADO</h1>
@@ -54,26 +67,28 @@
     </div>
   </div>
 
-  <!-- Banners -->
+  <!-- Banner de turno -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
-  <div id="battleStartBanner">¡COMIENZA EL COMBATE!</div>
-  <audio id="battleStartSound" src="assets/drum.mp3" preload="auto"></audio>
 
-  <!-- Tutorial interactivo (overlay informativo, no bloquea clics) -->
-  <div id="tutorialOverlay" style="display:none">
-    <div class="tut-box">
-      <p id="tutText"></p>
-    </div>
-  </div>
-
-  <!-- Tablero + HUD -->
+  <!-- Tablero 16x9 + HUD fijo inferior -->
   <div id="mapa" style="display:none">
+    <!-- El HUD va fijo al pie por CSS (position: fixed) -->
     <div id="hud">
       <div id="ficha"></div>
       <div id="acciones"></div>
     </div>
   </div>
 
-  <script src="script.js?v=tutorial-hans"></script>
+  <!-- Botón flotante Guardar (si no lo pones, el script lo creará solo) -->
+  <button id="btnGuardar" style="display:none">Guardar</button>
+
+  <!-- Tutorial overlay -->
+  <div id="tutorialOverlay" style="display:none">
+    <div class="tut-box">
+      <p id="tutText" class="tut-text"></p>
+    </div>
+  </div>
+
+  <script src="script.js?v=save-load"></script>
 </body>
 </html>
