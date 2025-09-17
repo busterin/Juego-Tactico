@@ -24,8 +24,8 @@
     step: 0,
     enemyR: null,
     enemyH: null,
-    targetMoveR: {f:6, c:4},
-    targetMoveH: {f:6, c:3}
+    targetMoveR: {f:6, c:4},  // casilla resaltada para Risko
+    targetMoveH: {f:6, c:3}   // casilla resaltada para Hans
   };
 
   // --- Helper: tolerante a .PNG/.png ---
@@ -38,7 +38,7 @@
     };
   }
 
-  // --- Helper: cambiar fondo (usa .PNG exacto) ---
+  // --- Helper: cambiar fondo (usa .PNG exacto por tu librería) ---
   function setBackgroundAsset(assetPathExact){
     document.documentElement.style.setProperty('--bg-url', `url("${assetPathExact}")`);
   }
@@ -138,7 +138,6 @@
   function showCurrentDialog(){
     const line = currentDialogLines[dlgIndex];
     if (!line) return;
-    // Layout especial para fortaleza (flip de Hans + mostrar guardián)
     applyFortressDialogLayout();
     setActiveSpeaker();
     clearTimeout(typeTimer);
@@ -240,7 +239,6 @@
   const charKnight = document.getElementById("charKnight");   // Risko (derecha)
   const charArcher = document.getElementById("charArcher");   // Hans (izquierda por defecto)
   let   charGuardian = document.getElementById("charGuardian");
-  // Si no existe, crearlo (para poder mostrarlo en fortaleza)
   if (!charGuardian && dialog){
     charGuardian = document.createElement("img");
     charGuardian.id = "charGuardian";
@@ -257,16 +255,15 @@
   const battleSound  = document.getElementById("battleStartSound");  // <audio id="battleStartSound" src="assets/drum.mp3">
   function showBattleStart(){
     if (battleBanner){
-      battleBanner.style.display = "block";
+      battleBanner.style.display = "flex";
       setTimeout(()=>{ battleBanner.style.display="none"; }, 2500);
     } else {
-      // fallback si no hay banner en HTML
       const banner = document.createElement("div");
-      banner.textContent = "¡COMIENZA EL COMBATE!";
       Object.assign(banner.style,{
         position:"fixed", inset:"0", display:"flex", alignItems:"center", justifyContent:"center",
         fontSize:"42px", fontWeight:"900", color:"#fff", background:"rgba(0,0,0,.7)", zIndex:"25000"
       });
+      banner.textContent = "¡COMIENZA EL COMBATE!";
       document.body.appendChild(banner);
       setTimeout(()=>banner.remove(),2000);
     }
@@ -349,7 +346,7 @@
       ocupadas.add(key(f,c));
       enemies.push({
         id:`E${Date.now()}-${i}`,
-        nombre:`Bandido ${i+1 + (fase===2?3:0)}`,
+        nombre:`Soldado ${i+1 + (fase===2?3:0)}`,  // <- cambiado
         fila:f, col:c, vivo:true,
         hp:50, maxHp:50,
         retrato:"assets/enemy.PNG",
@@ -552,7 +549,7 @@
           renderFicha(seleccionado);
           celdasMovibles.clear(); distSel=null;
           dibujarMapa();
-          setTutText("Ataca al bandido adyacente.");
+          setTutText("Ataca al soldado adyacente.");
           tutorial.step = 2;
           botonesAccionesPara(seleccionado);
         }
@@ -583,7 +580,7 @@
           renderFicha(seleccionado);
           celdasMovibles.clear(); distSel=null;
           dibujarMapa();
-          setTutText("Ataca a distancia al bandido (rango 2).");
+          setTutText("Ataca a distancia al soldado (rango 2).");
           tutorial.step = 5;
           botonesAccionesPara(seleccionado);
         }
@@ -591,7 +588,7 @@
       }
 
       if (t === 5){ return; } // atacar con Hans desde botones
-      if (t === 6){ return; } // pulsa pasar turno desde botones
+      if (t === 6){ return; } // pulsa pasar turno
 
       return;
     }
@@ -796,8 +793,8 @@
       { id:"A", tipo:"arquero",  fila:6, col:2, vivo:true, nombre:"Hans",  hp: 80, maxHp: 80, retrato:"assets/archer.PNG", nivel:1, kills:0, damage:50, range:[2], acted:false, mp:PLAYER_MAX_MP }
     ];
     enemies = [];
-    tutorial.enemyR = { id:"TR", nombre:"Bandido R", fila:6, col:5, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax:ENEMY_MAX_MP };
-    tutorial.enemyH = { id:"TH", nombre:"Bandido H", fila:4, col:3, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax:ENEMY_MAX_MP };
+    tutorial.enemyR = { id:"TR", nombre:"Soldado R", fila:6, col:5, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax:ENEMY_MAX_MP };
+    tutorial.enemyH = { id:"TH", nombre:"Soldado H", fila:4, col:3, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax:ENEMY_MAX_MP };
     enemies.push(tutorial.enemyR, tutorial.enemyH);
 
     seleccionado = null; celdasMovibles.clear(); distSel=null;
@@ -806,6 +803,8 @@
     mapa.style.display = "grid";
     setTurno("jugador");
     showTut(true);
+    // evitar que el overlay tape clics del HUD/mapa
+    if (tutOverlay) tutOverlay.style.pointerEvents = 'none';
     setTutText("Primero, selecciona a Risko.");
     ajustarTamanoTablero(); dibujarMapa(); applyOrientationLock();
   }
@@ -821,7 +820,7 @@
     setTurno("jugador");
   }
 
-  // ---------- Escena 1: combate normal (si se entra directo) ----------
+  // ---------- Escena 1: combate normal (por si se entra directo) ----------
   function startBattleScene1(){
     setBackgroundAsset("assets/background.PNG");
     players=[makeKnight(),makeArcher()];
@@ -902,18 +901,14 @@
     if (dialog)  dialog.style.display  = "none";
     if (mapa)    mapa.style.display    = "none";
 
-    // Pre-draw (no visible todavía) para evitar saltos
+    // Pre-draw invisible para evitar saltos
     players=[makeKnight(),makeArcher()];
     ajustarTamanoTablero(); spawnFase(); dibujarMapa();
     hookWinContinue();
 
     // Handler robusto de JUGAR
     if (btnJugar) {
-      // aseguramos que portada no bloquee clics
-      if (portada) {
-        portada.style.pointerEvents = 'auto';
-        portada.style.zIndex = '10000';
-      }
+      if (portada) { portada.style.pointerEvents = 'auto'; portada.style.zIndex = '10000'; }
       btnJugar.onclick = (event) => {
         try { event?.preventDefault?.(); } catch(e){}
         if (portada) portada.style.display = 'none';
