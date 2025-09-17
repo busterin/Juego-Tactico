@@ -642,12 +642,13 @@
   });
 
   function startIntroDialog(){
-    currentDialog = dialogLinesIntro;
-    dlgIndex = 0;
-    afterDialogAction = 'startTutorial';
-    resetDialogPortraitPositions();
-    dialog.style.display = "block"; showCurrentDialog();
-  }
+  currentDialog = dialogLinesIntro;  // el diálogo de Risko/Hans
+  dlgIndex = 0;
+  afterDialogAction = 'startTutorial';  // << clave: al terminar, iniciar tutorial
+  resetDialogPortraitPositions();
+  dialog.style.display = "block";
+  showCurrentDialog();
+}
 
   function startTutorial(){
     // Fondo del primer escenario
@@ -832,26 +833,27 @@ if (btnIntroNext){
 }
   // ---------- Botón diálogo next ----------
   if (btnDialogNext){
-    btnDialogNext.onclick = ()=>{
-      const line = currentDialog[dlgIndex];
-      if (typing){
-        clearTimeout(typeTimer);
-        dialogTextEl.textContent = line.text;
-        typing = false;
-        dialogTextEl.classList.remove('type-cursor');
-        return;
-      }
-      dlgIndex++;
-      if (dlgIndex >= currentDialog.length){
-        dialog.style.display = "none";
-        if (afterDialogAction === 'startTutorial') startTutorial();
-        else if (afterDialogAction === 'startBattleScene2') startBattleScene2();
-        applyOrientationLock();
-        return;
-      }
-      showCurrentDialog();
-    };
-  }
+  btnDialogNext.onclick = ()=>{
+    const line = currentDialog[dlgIndex];
+    if (typing){
+      clearTimeout(typeTimer);
+      dialogTextEl.textContent = line.text;
+      typing = false;
+      dialogTextEl.classList.remove('type-cursor');
+      return;
+    }
+    dlgIndex++;
+    if (dlgIndex >= currentDialog.length){
+      dialog.style.display = "none";
+      // ⬇️ Aquí se respeta la acción marcada antes
+      if (afterDialogAction === 'startTutorial') startTutorial();
+      else if (afterDialogAction === 'startBattleScene2') startBattleScene2();
+      applyOrientationLock();
+      return;
+    }
+    showCurrentDialog();
+  };
+}
 
   // ---------- Victoria → Fort. ----------
   if (btnContinuar){
