@@ -806,28 +806,30 @@
     saveGame('auto');
   }
 
-  // ---------- Botón intro next ----------
-  if (btnIntroNext){
-    btnIntroNext.onclick = ()=>{
-      const page = INTRO_PAGES[introPageIndex];
-      if (introTyping){
-        clearTimeout(introTypeTimer);
-        introTextEl.textContent = page.text;
-        introTextEl.classList.remove('type-cursor');
-        introTyping = false;
-        return;
-      }
-      if (introPageIndex < INTRO_PAGES.length - 1){
-        introPageIndex++; showIntroPage(introPageIndex); saveGame('auto');
-      } else {
-        intro.style.display="none";
-        startIntroDialog();
-        saveGame('auto');
-      }
-      applyOrientationLock();
-    };
-  }
-
+  // Botón CONTINUAR de la intro
+if (btnIntroNext){
+  btnIntroNext.onclick = ()=>{
+    const page = INTRO_PAGES[introPageIndex];
+    if (introTyping){
+      clearTimeout(introTypeTimer);
+      introTextEl.textContent = page.text;
+      introTextEl.classList.remove('type-cursor');
+      introTyping = false;
+      return;
+    }
+    if (introPageIndex < INTRO_PAGES.length - 1){
+      introPageIndex++;
+      showIntroPage(introPageIndex);
+      saveGame('auto');
+    } else {
+      // ⬇️ IMPORTANTE: terminar intro → abrir DIÁLOGO, no combate
+      intro.style.display = "none";
+      startIntroDialog();          // << aquí empieza el diálogo (Risko/Hans)
+      saveGame('auto');
+    }
+    applyOrientationLock();
+  };
+}
   // ---------- Botón diálogo next ----------
   if (btnDialogNext){
     btnDialogNext.onclick = ()=>{
