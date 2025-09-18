@@ -1,18 +1,15 @@
-/* build: 16x9 landscape · Save/Load · Intro x2 · Tutorial · Fortaleza · Guardian · Diálogos clásicos · Banner+Tambor · PNG tolerant */
+/* build: tutorial Risko+Hans · landscape 16x9 · intro x2 · diálogo · banner combate+drum · PNG tolerant */
 (function(){
   // --- Dimensiones tablero 16×9 ---
   const ROWS = 9, COLS = 16;
   const NON_PLAYABLE_BOTTOM_ROWS = 2;
 
-  // Parámetros base
+  // Parámetros
   const PLAYER_MAX_MP = 5;
   const ENEMY_MAX_MP  = 3;
   const ENEMY_BASE_DAMAGE = 50;
 
-  // Save system
-  const SAVE_KEY = 'TH_SAVE_V1';
-
-  // Estado general
+  // Estado
   let turno = "jugador";
   let fase = 1;
   let enemies = [];
@@ -21,19 +18,15 @@
   let celdasMovibles = new Set();
   let distSel = null;
 
-  // Estado tutorial
+  // Tutorial
   let tutorial = {
     active: false,
     step: 0,
-    enemyR: null,
-    enemyH: null,
-    targetMoveR: {f:6, c:4},
-    targetMoveH: {f:6, c:3}
+    enemyR: null,  // enemigo para Risko (adyacente tras el movimiento)
+    enemyH: null,  // enemigo para Hans (rango 2)
+    targetMoveR: {f:6, c:4}, // destino de Risko
+    targetMoveH: {f:6, c:3}  // destino de Hans
   };
-
-  // Escena / flujo
-  // sceneId = 'intro' | 'dialog1' | 'tutorial' | 'battle1' | 'dialog2' | 'battle2'
-  let sceneId = 'intro';
 
   // --- Helper: tolerante a .PNG/.png ---
   function loadImgCaseTolerant(imgEl, src){
@@ -43,11 +36,6 @@
       else if (src.endsWith('.png')) imgEl.src = src.replace(/\.png$/, '.PNG');
       imgEl.onerror = null;
     };
-  }
-
-  // --- Helper: cambiar fondo ---
-  function setBackgroundAsset(assetPathExact){
-    document.documentElement.style.setProperty('--bg-url', `url("${assetPathExact}")`);
   }
 
   // ---------- Intro ----------
@@ -88,41 +76,31 @@
     }
   }
 
-  // ---------- Diálogos ----------
-  let currentDialogLines = [];
-  let dlgIndex = 0, typing=false, typeTimer=null;
-  let afterDialogAction = null;
-
-  const dialogLines1 = [
+  // ---------- Diálogo ----------
+  const dialogLines = [
     { who:'knight', name:'Risko', text:'Llevamos días huyendo y aún nos persiguen esos dichosos soldados.' },
     { who:'archer', name:'Hans',  text:'Han matado al Rey y te han acusado a ti, además ni siquiera sabemos quien fue...' },
     { who:'knight', name:'Risko', text:'Tengo mis sospechas pero ninguna prueba. Eres el único miembro de la Guardia que me queda, Hans.' },
     { who:'archer', name:'Hans',  text:'Te seguiré siempre, capitana. De momento sólo podemos huir, y prepárate porque ahí vienen de nuevo.' }
   ];
+  let dlgIndex = 0, typing=false, typeTimer=null, speakPopTimer=null;
 
-  const fortDialogLines = [
-    { who:'archer',   name:'Hans',     text:'Lo hemos logrado, Capitana. Hemos podido refugiarnos en la fortaleza.' },
-    { who:'knight',   name:'Risko',    text:'No cantes victoria tan rápido. Tengo un mal presentimiento.' },
-    { who:'guardian', name:'Guardián', text:'Vaya, vaya. Parece que dos pajaritos han caído en nuestra trampa. Estos muros serán vuestra muerte…' },
-    { who:'knight',   name:'Risko',    text:'¡Un Guardián! Uno de los soldados destacados del reino.' },
-    { who:'archer',   name:'Hans',     text:'Después de nosotros, claro.' },
-    { who:'guardian', name:'Guardián', text:'El Rey Fortris ordena tu ejecución.' },
-    { who:'knight',   name:'Risko',    text:'¡Fortris no es un rey legítimo! ¡Asesinos!' },
-    { who:'guardian', name:'Guardián', text:'Cuando acabe con su última pieza para ganar la partida, lo será.' },
-    { who:'knight',   name:'Risko',    text:'¿Yo soy su última pieza?' },
-    { who:'archer',   name:'Hans',     text:'¡Cuidado! ¡Ahí vienen!' }
-  ];
-
+  function clearPop(){ [charKnight, charArcher].forEach(el=>el && el.classList.remove('pop','speaking')); }
   function setActiveSpeaker(){
-    const line = currentDialogLines[dlgIndex];
+    clearTimeout(speakPopTimer);
+    const line = dialogLines[dlgIndex];
     if (!line) return;
-    [charKnight,charArcher,charGuardian].forEach(el=>{ if(el) el.style.opacity=".6"; });
-    if (line.who === 'knight'  && charKnight)   charKnight.style.opacity = '1';
-    if (line.who === 'archer'  && charArcher)   charArcher.style.opacity = '1';
-    if (line.who === 'guardian'&& charGuardian) charGuardian.style.opacity = '1';
+    if (charKnight && charArcher){
+      charKnight.style.opacity = '.6'; charArcher.style.opacity = '.6';
+      if (line.who === 'knight'){ charKnight.style.opacity='1'; charKnight.classList.add('speaking'); }
+      else { charArcher.style.opacity='1'; charArcher.classList.add('speaking'); }
+      speakPopTimer = setTimeout(()=>{
+        if (line.who === 'knight'){ charKnight.classList.add('pop'); }
+        else { charArcher.classList.add('pop'); }
+      }, 500);
+    }
     if (dialogNameEl) dialogNameEl.textContent = line.name;
   }
-
   function typeWriterDialog(text, speed=22){
     typing = true;
     dialogTextEl.textContent = '';
@@ -132,93 +110,53 @@
       if (i <= text.length){
         dialogTextEl.textContent = text.slice(0,i);
         i++; typeTimer = setTimeout(step, speed);
-      } else {
-        typing = false;
-        dialogTextEl.classList.remove('type-cursor');
-      }
+      } else { typing = false; dialogTextEl.classList.remove('type-cursor'); }
     }
     step();
   }
+  function showCurrentDialog(){ const line = dialogLines[dlgIndex]; if(!line) return; setActiveSpeaker(); clearTimeout(typeTimer); typeWriterDialog(line.text); }
 
-  function showCurrentDialog(){
-    const line = currentDialogLines[dlgIndex];
-    if (!line) return;
-    applyFortressDialogLayout();
-    setActiveSpeaker();
-    clearTimeout(typeTimer);
-    typeWriterDialog(line.text);
+  // --- Banner inicio + sonido ---
+  const battleBanner = document.getElementById("battleStartBanner");
+  const battleSound  = document.getElementById("battleStartSound");
+  function showBattleStart(){
+    if (battleBanner){ battleBanner.style.display = "block"; setTimeout(()=>{ battleBanner.style.display="none"; }, 2500); }
+    if (battleSound){ battleSound.currentTime = 0; battleSound.play().catch(()=>{}); }
   }
 
   function advanceDialog(){
     if (!dialog) return;
-    const line = currentDialogLines[dlgIndex];
-    if (typing){
-      clearTimeout(typeTimer);
-      dialogTextEl.textContent = line.text;
-      typing = false;
-      dialogTextEl.classList.remove('type-cursor');
-      return;
-    }
-    dlgIndex++;
-    if (dlgIndex >= currentDialogLines.length){
+    const line = dialogLines[dlgIndex];
+    if (typing){ clearTimeout(typeTimer); dialogTextEl.textContent=line.text; typing=false; dialogTextEl.classList.remove('type-cursor'); return; }
+    dlgIndex++; clearPop();
+    if (dlgIndex >= dialogLines.length){
       dialog.style.display = "none";
-      if (afterDialogAction === 'startTutorial'){
-        startTutorial();
-      } else if (afterDialogAction === 'startBattleScene2'){
-        startBattleScene2();
-      } else if (afterDialogAction === 'startBattle'){
-        startBattleScene1();
-      }
-      applyOrientationLock();
+      // Iniciar TUTORIAL en lugar del combate directo
+      startTutorial();
       return;
     }
     showCurrentDialog();
   }
 
-  // --- Disposición de retratos (clásico) ---
-  function resetDialogPortraitPositions(){
-    if (!charKnight || !charArcher) return;
-    charKnight.classList.remove('left','flip'); charKnight.classList.add('right'); // Risko derecha
-    charArcher.classList.remove('right','flip'); charArcher.classList.add('left'); // Hans izquierda
-    if (charGuardian){
-      charGuardian.style.display = "none";
-      charGuardian.classList.remove('right','flip'); charGuardian.classList.add('left');
-    }
-  }
-
-  function applyFortressDialogLayout(){
-    if (currentDialogLines !== fortDialogLines) return;
-    if (!charKnight || !charArcher || !charGuardian) return;
-    const guardianHasAppeared = dlgIndex >= 2;
-    if (guardianHasAppeared){
-      charGuardian.style.display = "block";         // Guardián a la izquierda
-      charGuardian.classList.remove('right','flip'); charGuardian.classList.add('left');
-
-      charKnight.classList.remove('left'); charKnight.classList.add('right'); // Risko derecha
-
-      // Hans pasa a la derecha con Risko PERO volteado para mirar al guardián
-      charArcher.classList.remove('left'); charArcher.classList.add('right');
-      charArcher.classList.add('flip');
-    } else {
-      resetDialogPortraitPositions();
-    }
-  }
-
-  // ---------- Unidades jugador ----------
+  // Unidades del jugador
   const makeKnight = () => ({
-    id:"K", tipo:"caballero", nombre:"Risko",
+    id: "K", tipo: "caballero",
     fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.25),
-    vivo:true, hp:100, maxHp:100, retrato:"assets/player.PNG",
-    nivel:1, kills:0, damage:50, range:[1], acted:false, mp:PLAYER_MAX_MP
+    vivo: true, nombre: "Risko",
+    hp: 100, maxHp: 100,
+    retrato: "assets/player.PNG", nivel: 1, kills: 0,
+    damage: 50, range: [1], acted: false, mp: PLAYER_MAX_MP
   });
   const makeArcher = () => ({
-    id:"A", tipo:"arquero", nombre:"Hans",
+    id: "A", tipo: "arquera",
     fila: Math.floor(ROWS*0.55), col: Math.floor(COLS*0.20),
-    vivo:true, hp:80, maxHp:80, retrato:"assets/archer.PNG",
-    nivel:1, kills:0, damage:50, range:[2], acted:false, mp:PLAYER_MAX_MP
+    vivo: true, nombre: "Hans",
+    hp: 80, maxHp: 80,
+    retrato: "assets/archer.PNG", nivel: 1, kills: 0,
+    damage: 50, range: [2], acted: false, mp: PLAYER_MAX_MP
   });
 
-  // ---------- DOM ----------
+  // DOM
   const mapa = document.getElementById("mapa");
   const acciones = document.getElementById("acciones");
   const ficha = document.getElementById("ficha");
@@ -227,8 +165,7 @@
   const turnBanner = document.getElementById("turnBanner");
 
   const portada = document.getElementById("portada");
-  const btnNueva = document.getElementById("btnNuevaPartida");
-  const btnCargar = document.getElementById("btnCargarPartida");
+  const btnJugar = document.getElementById("btnJugar");
 
   // Intro DOM
   const intro = document.getElementById("introScene");
@@ -241,65 +178,18 @@
   const dialogNameEl = document.getElementById("dialogName");
   const dialogTextEl = document.getElementById("dialogText");
   const btnDialogNext = document.getElementById("btnDialogNext");
-  const charKnight = document.getElementById("charKnight");   // Risko (derecha)
-  const charArcher = document.getElementById("charArcher");   // Hans (izquierda por defecto)
-  let   charGuardian = document.getElementById("charGuardian");
-  if (!charGuardian && dialog){
-    charGuardian = document.createElement("img");
-    charGuardian.id = "charGuardian";
-    charGuardian.className = "dialog-char left";
-    charGuardian.style.display = "none";
-    dialog.appendChild(charGuardian);
-  }
-  if (charKnight)   loadImgCaseTolerant(charKnight,   "assets/GuerreraDialogo.PNG");
-  if (charArcher)   loadImgCaseTolerant(charArcher,   "assets/ArqueroDialogo.PNG");
-  if (charGuardian) loadImgCaseTolerant(charGuardian, "assets/GuardianDialogo.PNG");
+  const charKnight = document.getElementById("charKnight"); // Risko (derecha)
+  const charArcher = document.getElementById("charArcher"); // Hans (izquierda)
 
-  // Botón flotante Guardar (creado si no existe)
-  let btnGuardar = document.getElementById("btnGuardar");
-  if (!btnGuardar){
-    btnGuardar = document.createElement('button');
-    btnGuardar.id = 'btnGuardar';
-    btnGuardar.textContent = 'Guardar';
-    document.body.appendChild(btnGuardar);
-  }
-  btnGuardar.onclick = ()=> saveGame('manual');
+  // Carga de imágenes de diálogo
+  if (charKnight) loadImgCaseTolerant(charKnight, "assets/GuerreraDialogo.PNG");
+  if (charArcher) loadImgCaseTolerant(charArcher, "assets/ArqueroDialogo.PNG");
 
-  // ---------- Banner “¡COMIENZA EL COMBATE!” + tambor ----------
-  const battleBanner = document.getElementById("battleStartBanner");
-  const battleSound  = document.getElementById("battleStartSound");
-  function showBattleStart(){
-    if (battleBanner){
-      battleBanner.style.display = "flex";
-      setTimeout(()=>{ battleBanner.style.display="none"; }, 2500);
-    } else {
-      const banner = document.createElement("div");
-      Object.assign(banner.style,{
-        position:"fixed", inset:"0", display:"flex", alignItems:"center", justifyContent:"center",
-        fontSize:"42px", fontWeight:"900", color:"#fff", background:"rgba(0,0,0,.7)", zIndex:"25000"
-      });
-      banner.textContent = "¡COMIENZA EL COMBATE!";
-      document.body.appendChild(banner);
-      setTimeout(()=>banner.remove(),2000);
-    }
-    if (battleSound){
-      battleSound.currentTime = 0;
-      battleSound.play().catch(()=>{});
-    }
-  }
+  // ---------- Banner turno ----------
+  function showTurnBanner(text){ turnBanner.textContent = text; turnBanner.style.display = "block"; setTimeout(()=>{ turnBanner.style.display = "none"; }, 1300); }
+  function setTurno(t){ turno = t; showTurnBanner(t==="jugador" ? "TU TURNO" : t==="enemigo" ? "TURNO ENEMIGO" : "FIN DE PARTIDA"); }
 
-  // ---------- Banner de turno ----------
-  function showTurnBanner(text){
-    turnBanner.textContent = text;
-    turnBanner.style.display = "block";
-    setTimeout(()=>{ turnBanner.style.display = "none"; }, 1300);
-  }
-  function setTurno(t){
-    turno = t;
-    showTurnBanner(t==="jugador" ? "TU TURNO" : t==="enemigo" ? "TURNO ENEMIGO" : "FIN DE PARTIDA");
-  }
-
-  // ---------- Layout / tablero ----------
+  // ---------- Layout ----------
   function getUsableViewport(){
     const w = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
     const h = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
@@ -320,14 +210,14 @@
   window.addEventListener('orientationchange', ajustarTamanoTablero);
   new ResizeObserver(()=>ajustarTamanoTablero()).observe(document.body);
 
-  // ---------- Bloqueo orientación (horizontal) ----------
+  // ---------- Bloqueo orientación ----------
   function isPortrait(){ return window.innerHeight > window.innerWidth; }
   function applyOrientationLock(){
     const blocker = document.getElementById("orientationBlocker");
     const enVertical = isPortrait();
     const portadaVisible = portada && getComputedStyle(portada).display !== "none";
     const shouldBlock = enVertical && !portadaVisible;
-    if (blocker) blocker.style.display = shouldBlock ? "grid" : "none";
+    blocker.style.display = shouldBlock ? "grid" : "none";
     if (portada){ portada.style.pointerEvents = "auto"; portada.style.filter = "none"; }
     const dim = (el)=>{ if(!el) return; el.style.pointerEvents = shouldBlock ? "none" : "auto"; el.style.filter = shouldBlock ? "grayscale(1) blur(1.5px) brightness(.7)" : "none"; };
     dim(intro); dim(dialog); dim(mapa);
@@ -338,7 +228,7 @@
     window.addEventListener("orientationchange", ()=> setTimeout(applyOrientationLock,100));
   }
 
-  // ---------- Utils cuadricula ----------
+  // ---------- Utils ----------
   const key = (f,c) => `${f},${c}`;
   const dentro = (f,c) => f>=0 && f<ROWS && c>=0 && c<COLS;
   const noJugable = (f) => f >= ROWS - NON_PLAYABLE_BOTTOM_ROWS;
@@ -346,7 +236,7 @@
   const enLineaRecta = (a,b) => (a.fila===b.fila) || (a.col===b.col);
   function getCelda(f,c){ return mapa.querySelector(`.celda[data-key="${f},${c}"]`); }
 
-  // ---------- Oleadas estándar ----------
+  // ---------- Oleadas ----------
   function spawnFase(){
     enemies = [];
     const count = (fase === 1) ? 3 : (fase === 2) ? 4 : 0;
@@ -361,18 +251,18 @@
       ocupadas.add(key(f,c));
       enemies.push({
         id:`E${Date.now()}-${i}`,
-        nombre:`Soldado ${i+1 + (fase===2?3:0)}`,
+        nombre:`Bandido ${i+1 + (fase===2?3:0)}`,
         fila:f, col:c, vivo:true,
         hp:50, maxHp:50,
         retrato:"assets/enemy.PNG",
         damage:ENEMY_BASE_DAMAGE,
-        mpMax: ENEMY_MAX_MP
+        mp: ENEMY_MAX_MP
       });
     }
     if (turno==="jugador") players.forEach(p=>{ p.acted=false; p.mp=PLAYER_MAX_MP; });
   }
 
-  // ---------- Render tablero ----------
+  // ---------- Render ----------
   function dibujarMapa(){
     mapa.querySelectorAll(".celda").forEach(n=>n.remove());
     for (let f=0; f<ROWS; f++){
@@ -382,9 +272,14 @@
         celda.dataset.key = key(f,c);
         if (noJugable(f)) celda.style.pointerEvents = "none";
 
+        // tutorial: marca celda objetivo
         if (tutorial.active){
-          if (tutorial.step === 1 && f===tutorial.targetMoveR.f && c===tutorial.targetMoveR.c) celda.classList.add("tut-target");
-          if (tutorial.step === 4 && f===tutorial.targetMoveH.f && c===tutorial.targetMoveH.c) celda.classList.add("tut-target");
+          const t = tutorial.step;
+          if (t === 1){
+            if (f===tutorial.targetMoveR.f && c===tutorial.targetMoveR.c) celda.classList.add("tut-target");
+          } else if (t === 4){
+            if (f===tutorial.targetMoveH.f && c===tutorial.targetMoveH.c) celda.classList.add("tut-target");
+          }
         }
 
         if (seleccionado && celdasMovibles.has(key(f,c))) celda.classList.add("movible");
@@ -402,7 +297,7 @@
           if (e.vivo && e.fila===f && e.col===c){
             const img = document.createElement("img");
             img.alt = e.nombre; img.className = "fichaMiniImg";
-            loadImgCaseTolerant(img, e.retrato || "assets/enemy.PNG");
+            loadImgCaseTolerant(img, "assets/enemy.PNG");
             celda.appendChild(img);
           }
         }
@@ -432,10 +327,10 @@
     infoMp.style.alignSelf = "center";
     acciones.appendChild(infoMp);
 
-    // Tutorial: restringir acciones por paso
+    // Tutorial: restringe ataque al objetivo concreto en cada paso
     if (tutorial.active){
       const t = tutorial.step;
-      if (t === 2){ // Risko ataca adyacente
+      if (t === 2){ // Ataque de Risko al enemigo R adyacente
         const en = tutorial.enemyR && enemies.find(e=>e.id===tutorial.enemyR.id && e.vivo);
         if (en && stillInRange(unidad, en)){
           const b=document.createElement("button");
@@ -443,7 +338,7 @@
           b.onclick=()=>atacarUnidadA(unidad,en);
           acciones.appendChild(b);
         }
-      } else if (t === 5){ // Hans ataca a rango 2
+      } else if (t === 5){ // Ataque de Hans a distancia 2
         const en = tutorial.enemyH && enemies.find(e=>e.id===tutorial.enemyH.id && e.vivo);
         if (en && stillInRange(unidad, en)){
           const b=document.createElement("button");
@@ -452,16 +347,17 @@
           acciones.appendChild(b);
         }
       }
+
       if (t === 6){
         const bTurn=document.createElement("button");
         bTurn.textContent="Pasar turno";
         bTurn.onclick=()=>finishTutorialAndStartBattle();
         acciones.appendChild(bTurn);
       }
-      return;
+      return; // no añadir más botones durante tutorial
     }
 
-    // Combate normal
+    // Combate normal (fuera del tutorial)
     enemigosEnRango(unidad).forEach(en=>{
       const b=document.createElement("button");
       b.className="primary";
@@ -507,9 +403,12 @@
       for(const [df,dc] of dirs){
         const nf=f+df,nc=c+dc;
         if(!dentro(nf,nc) || noJugable(nf)) continue;
+
+        // Evitar choques
         const ocupado = enemies.some(e=>e.vivo&&e.fila===nf&&e.col===nc) ||
                         players.some(p=>p.vivo&&p!==u&&p.fila===nf&&p.col===nc);
         if(ocupado) continue;
+
         const nd = distSel[f][c] + 1;
         if(nd<=u.mp && nd<distSel[nf][nc]){ distSel[nf][nc]=nd; q.push([nf,nc]); }
       }
@@ -538,11 +437,12 @@
 
     if (turno!=="jugador") return;
 
-    // Tutorial gating
+    // --- Tutorial gating ---
     if (tutorial.active){
       const t = tutorial.step;
 
-      if (t === 0){ // selecciona Risko
+      // Paso 0: seleccionar Risko
+      if (t === 0){
         const risko = players.find(p=>p.nombre==="Risko" && p.vivo);
         if (pj === risko){
           seleccionado = pj; if (seleccionado.mp>0) calcularCeldasMovibles(seleccionado);
@@ -553,8 +453,9 @@
         return;
       }
 
-      if (t === 1){ // mover Risko
-        if (!seleccionado || seleccionado.nombre!=="Risko") return;
+      // Paso 1: mover Risko a (6,4)
+      if (t === 1){
+        if (!seleccionado || seleccionado.nombre!=="Risko"){ return; }
         const esAlcanzable = celdasMovibles.has(`${f},${c}`);
         const esObjetivo = (f===tutorial.targetMoveR.f && c===tutorial.targetMoveR.c);
         if (esAlcanzable && esObjetivo){
@@ -564,16 +465,21 @@
           renderFicha(seleccionado);
           celdasMovibles.clear(); distSel=null;
           dibujarMapa();
-          setTutText("Ataca al soldado adyacente.");
+          setTutText("Ataca al bandido adyacente.");
           tutorial.step = 2;
           botonesAccionesPara(seleccionado);
         }
         return;
       }
 
-      if (t === 2){ return; } // atacar con Risko desde botones
+      // Paso 2: atacar con Risko al enemigo R
+      if (t === 2){
+        // El click en celdas no hace falta aquí; el botón ATACAR está en HUD
+        return;
+      }
 
-      if (t === 3){ // seleccionar Hans
+      // Paso 3: seleccionar Hans
+      if (t === 3){
         const hans = players.find(p=>p.nombre==="Hans" && p.vivo);
         if (pj === hans){
           seleccionado = pj; if (seleccionado.mp>0) calcularCeldasMovibles(seleccionado);
@@ -584,8 +490,9 @@
         return;
       }
 
-      if (t === 4){ // mover Hans
-        if (!seleccionado || seleccionado.nombre!=="Hans") return;
+      // Paso 4: mover Hans a (6,3)
+      if (t === 4){
+        if (!seleccionado || seleccionado.nombre!=="Hans"){ return; }
         const esAlcanzable = celdasMovibles.has(`${f},${c}`);
         const esObjetivo = (f===tutorial.targetMoveH.f && c===tutorial.targetMoveH.c);
         if (esAlcanzable && esObjetivo){
@@ -595,28 +502,34 @@
           renderFicha(seleccionado);
           celdasMovibles.clear(); distSel=null;
           dibujarMapa();
-          setTutText("Ataca a distancia al soldado (rango 2).");
+          setTutText("Ataca a distancia al bandido (rango 2).");
           tutorial.step = 5;
           botonesAccionesPara(seleccionado);
         }
         return;
       }
 
-      if (t === 5){ return; } // atacar con Hans desde botones
-      if (t === 6){ return; } // pulsa pasar turno
+      // Paso 5: atacar con Hans al enemigo H
+      if (t === 5){
+        return; // se realiza desde el botón ATACAR
+      }
+
+      // Paso 6: pasar turno para empezar el combate real
+      if (t === 6){
+        return; // se gestiona desde el botón
+      }
 
       return;
     }
 
-    // Flujo normal
+    // --- Flujo normal (sin tutorial) ---
     if (pj){
       if (pj.acted){
         seleccionado=null; celdasMovibles.clear(); distSel=null; dibujarMapa(); acciones.innerHTML="";
         return;
       }
       seleccionado=pj;
-      if (seleccionado.mp>0) calcularCeldasMovibles(seleccionado);
-      else { celdasMovibles.clear(); distSel=null; }
+      if (seleccionado.mp>0) calcularCeldasMovibles(seleccionado); else { celdasMovibles.clear(); distSel=null; }
       dibujarMapa(); botonesAccionesPara(seleccionado);
       return;
     }
@@ -678,60 +591,32 @@
     return (attacker.range || []).includes(d);
   }
 
-  // Chequeo de oleada / victoria
-  function checkWaveOrWin(){
-    const anyEnemyAlive = enemies.some(e=>e.vivo);
-    if (anyEnemyAlive) return;
-    if (fase === 1){
-      fase = 2;
-      spawnFase();
-      dibujarMapa();
-      saveGame('auto'); // autoguardado cambio de oleada
-      return;
-    }
-    if (fase === 2){
-      setTurno("fin");
-      overlayWin.style.display = "grid";
-      saveGame('auto'); // autoguardado victoria
-      return;
-    }
-  }
-
   function atacarUnidadA(u, objetivoRef){
     const objetivo = isAliveEnemyById(objetivoRef.id);
     if (!objetivo || !stillInRange(u, objetivo)) { botonesAccionesPara(u); return; }
-
     aplicarDanyo(objetivo, u.damage, 'player');
     renderFicha(objetivo);
-
     setTimeout(()=>{
       if(!objetivo.vivo){ u.kills=(u.kills||0)+1; }
-
-      // limpiar estado atacante
       u.acted = true; u.mp = 0;
       seleccionado = null; celdasMovibles.clear(); distSel=null;
       acciones.innerHTML="";
       dibujarMapa();
 
-      // Avance tutorial
+      // Avances de tutorial tras cada ataque
       if (tutorial.active){
-        if (tutorial.step === 2){
+        if (tutorial.step === 2){ // tras atacar con Risko
           setTutText("Ahora selecciona a Hans.");
           tutorial.step = 3;
-          return;
-        }
-        if (tutorial.step === 5){
+        } else if (tutorial.step === 5){ // tras atacar con Hans
           setTutText("Pulsa 'Pasar turno' para comenzar el combate real.");
           tutorial.step = 6;
+          // mostrar botón "Pasar turno" (solo) al volver a pulsar al personaje
           const hans = players.find(p=>p.nombre==="Hans" && p.vivo);
-          if (hans){ seleccionado = hans; botonesAccionesPara(hans); }
-          return;
+          seleccionado = hans; botonesAccionesPara(hans);
         }
+        return;
       }
-
-      // Auto-oleadas / fin
-      checkWaveOrWin();
-      if (overlayWin.style.display === "grid") return;
 
       comprobarCambioATurnoEnemigo();
     }, 650);
@@ -745,24 +630,23 @@
 
   // ---------- IA Enemiga ----------
   function turnoIAEnemigos(){
+    // No hay IA durante el tutorial
     if (tutorial.active) return;
-    if (turno !== "enemigo") return;
 
+    if (turno !== "enemigo") return;
     const vivosJ = players.filter(p=>p.vivo);
     if (vivosJ.length === 0) { setTurno("fin"); return; }
 
     for (const en of enemies) {
       if (!en.vivo) continue;
-
-      const stepsThisTurn = (typeof en.mpMax === 'number') ? en.mpMax : ENEMY_MAX_MP;
-      en.mp = stepsThisTurn;
+      en.mp = ENEMY_MAX_MP;
 
       // objetivo más cercano
       let objetivo = vivosJ[0];
       let mejor = manhattan(en, objetivo);
       for (const p of vivosJ){ const d = manhattan(en, p); if (d < mejor){ mejor = d; objetivo = p; } }
 
-      // moverse
+      // moverse hasta 3 pasos
       const step = (a,b)=> a<b?1:(a>b?-1:0);
       while (en.mp > 0){
         if (manhattan(en, objetivo) === 1) break;
@@ -779,413 +663,122 @@
         if(!moved) break;
       }
 
-      const enemyDmg = (typeof en.damage === 'number') ? en.damage : ENEMY_BASE_DAMAGE;
       if (manhattan(en, objetivo) === 1 && isAlivePlayerByRef(objetivo)) {
-        aplicarDanyo(objetivo, enemyDmg, 'enemy');
+        aplicarDanyo(objetivo, ENEMY_BASE_DAMAGE, 'enemy');
         renderFicha(objetivo);
       }
     }
 
-    // Tras IA: comprobar oleadas/fin
-    dibujarMapa();
-    checkWaveOrWin();
-    if (overlayWin.style.display === "grid") return;
-
     players.forEach(p=>{ if(p.hp<=0) p.vivo=false; p.acted=false; p.mp = PLAYER_MAX_MP; });
-    setTurno("jugador");
+    dibujarMapa();
+
+    if (players.every(p=>!p.vivo)) { setTurno("fin"); }
+    else {
+      setTurno("jugador");
+      if (enemies.every(e=>!e.vivo)) {
+        if (fase === 1){ fase = 2; spawnFase(); dibujarMapa(); }
+        else if (fase === 2){ fase = 3; overlayWin.style.display="grid"; }
+      }
+    }
   }
 
-  // ---------- Tutorial UI ----------
+  // ---------- Tutorial: helpers ----------
   const tutOverlay = document.getElementById("tutorialOverlay");
   const tutTextEl  = document.getElementById("tutText");
   function setTutText(t){ if(tutTextEl){ tutTextEl.textContent = t; } }
   function showTut(b){ if(tutOverlay){ tutOverlay.style.display = b ? "block" : "none"; } }
 
   function startTutorial(){
-    sceneId = 'tutorial';
-    setBackgroundAsset("assets/background.PNG"); // ¡.PNG!
+    // Setup determinista de posiciones
     players = [
       { id:"K", tipo:"caballero", fila:6, col:3, vivo:true, nombre:"Risko", hp:100, maxHp:100, retrato:"assets/player.PNG", nivel:1, kills:0, damage:50, range:[1], acted:false, mp:PLAYER_MAX_MP },
-      { id:"A", tipo:"arquero",  fila:6, col:2, vivo:true, nombre:"Hans",  hp: 80, maxHp: 80, retrato:"assets/archer.PNG", nivel:1, kills:0, damage:50, range:[2], acted:false, mp:PLAYER_MAX_MP }
+      { id:"A", tipo:"arquera",  fila:6, col:2, vivo:true, nombre:"Hans",  hp: 80, maxHp: 80, retrato:"assets/archer.PNG", nivel:1, kills:0, damage:50, range:[2], acted:false, mp:PLAYER_MAX_MP }
     ];
     enemies = [];
-    tutorial.enemyR = { id:"TR", nombre:"Soldado R", fila:6, col:5, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax:ENEMY_MAX_MP };
-    tutorial.enemyH = { id:"TH", nombre:"Soldado H", fila:4, col:3, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax:ENEMY_MAX_MP };
+    // Enemigo para Risko (adyacente tras mover a 6,4)
+    tutorial.enemyR = { id:"TR", nombre:"Bandido R", fila:6, col:5, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mp:ENEMY_MAX_MP };
+    // Enemigo para Hans (a distancia 2 en vertical tras mover Hans a 6,3)
+    tutorial.enemyH = { id:"TH", nombre:"Bandido H", fila:4, col:3, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mp:ENEMY_MAX_MP };
     enemies.push(tutorial.enemyR, tutorial.enemyH);
 
     seleccionado = null; celdasMovibles.clear(); distSel=null;
     tutorial.active = true; tutorial.step = 0;
 
-    if (portada) portada.style.display = "none";
-    if (intro)   intro.style.display   = "none";
-    if (dialog)  dialog.style.display  = "none";
     mapa.style.display = "grid";
-    btnGuardar.style.display = 'block';
-
     setTurno("jugador");
     showTut(true);
-    if (tutOverlay) tutOverlay.style.pointerEvents = 'none';
     setTutText("Primero, selecciona a Risko.");
     ajustarTamanoTablero(); dibujarMapa(); applyOrientationLock();
-
-    saveGame('auto'); // autoguardado al empezar tutorial
   }
 
   function finishTutorialAndStartBattle(){
+    // Limpieza tutorial, arranque del combate normal
     tutorial.active = false;
+
+    // Reset turnos y MPs
     players.forEach(p=>{ p.acted=false; p.mp=PLAYER_MAX_MP; });
+
+    // Crear oleada normal y arrancar combate
     fase = 1;
     spawnFase();
     dibujarMapa();
     showTut(false);
+
+    // Banner + tambor
     showBattleStart();
     setTurno("jugador");
-    sceneId = 'battle1';
-    saveGame('auto');
   }
 
-  // ---------- Escena 1: combate normal ----------
-  function startBattleScene1(){
-    sceneId = 'battle1';
-    setBackgroundAsset("assets/background.PNG");
-    players=[makeKnight(),makeArcher()];
-    fase = 1; enemies = []; seleccionado=null; celdasMovibles.clear(); distSel=null;
-    mapa.style.display = "grid";
-    if (portada) portada.style.display = "none";
-    if (intro)   intro.style.display   = "none";
-    if (dialog)  dialog.style.display  = "none";
-    btnGuardar.style.display = 'block';
-
-    spawnFase();
-    dibujarMapa();
-    showBattleStart();
-    setTurno("jugador");
-    saveGame('auto');
-  }
-
-  // ---------- Escena 2: diálogo fortaleza → combate con Guardián ----------
-  function startScene2Dialog(){
-    sceneId = 'dialog2';
-    setBackgroundAsset("assets/Fortaleza.PNG");
-    if (ficha){ ficha.style.display = "none"; ficha.innerHTML=""; }
-    if (acciones){ acciones.innerHTML = ""; }
-    if (mapa){ mapa.style.display = "none"; }
-    btnGuardar.style.display = 'block';
-
-    currentDialogLines = fortDialogLines;
-    afterDialogAction  = 'startBattleScene2';
-    dlgIndex = 0;
-    resetDialogPortraitPositions();
-
-    if (dialog){
-      dialog.style.display = "block";
-      showCurrentDialog();
-    }
-    saveGame('auto');
-  }
-
-  function startBattleScene2(){
-    sceneId = 'battle2';
-    mapa.style.display = "grid";
-    tutorial.active = false;
-    fase = 1;
-    players = [ makeKnight(), makeArcher() ];
-    enemies = [];
-    seleccionado = null; celdasMovibles.clear(); distSel=null;
-    btnGuardar.style.display = 'block';
-
-    // Oleada estándar
-    spawnFase();
-
-    // Guardián (Fortaleza)
-    const lastPlayableRow = ROWS - NON_PLAYABLE_BOTTOM_ROWS - 1; // 6
-    const centerCol = Math.floor(COLS / 2); // 8
-    enemies.push({
-      id: `Guardian-${Date.now()}`,
-      nombre: "Guardián",
-      fila: lastPlayableRow,
-      col: centerCol,
-      vivo: true,
-      hp: 200,
-      maxHp: 200,
-      retrato: "assets/Guardian.PNG",
-      damage: 70,
-      mpMax: 1
-    });
-
-    dibujarMapa();
-    showBattleStart();
-    setTurno("jugador");
-    applyOrientationLock();
-    saveGame('auto');
-  }
-
-  // ---------- Botón CONTINUAR de victoria → escena 2 ----------
-  function hookWinContinue(){
-    if (btnContinuar){
-      btnContinuar.onclick = () => {
-        overlayWin.style.display = "none";
-        startScene2Dialog();
-      };
-    }
-  }
-
-  // ---------- GUARDADO / CARGA ----------
-  function getCurrentDialogId(){
-    if (currentDialogLines === dialogLines1) return 'd1';
-    if (currentDialogLines === fortDialogLines) return 'fort';
-    return null;
-  }
-
-  function saveGame(mode='manual'){
-    try{
-      const save = {
-        ver: 3,
-        ts: Date.now(),
-        sceneId,
-        background: getComputedStyle(document.documentElement).getPropertyValue('--bg-url'),
-        turno, fase,
-        players, enemies,
-        tutorial: {
-          active: tutorial.active,
-          step: tutorial.step,
-          targetMoveR: tutorial.targetMoveR,
-          targetMoveH: tutorial.targetMoveH,
-          enemyR: tutorial.enemyR,
-          enemyH: tutorial.enemyH
-        },
-        intro: { index: introPageIndex },
-        dialog: { which: getCurrentDialogId(), index: dlgIndex },
-      };
-      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-      if (mode==='manual'){
-        flashToast('Progreso guardado');
-      }
-    }catch(e){
-      console.error('Error guardando:', e);
-      flashToast('No se pudo guardar');
-    }
-  }
-
-  function hasSave(){
-    try { return !!localStorage.getItem(SAVE_KEY); } catch(e){ return false; }
-  }
-
-  function loadGame(){
-    try{
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return false;
-      const save = JSON.parse(raw);
-
-      // Restaurar estado principal
-      sceneId = save.sceneId || 'intro';
-      turno   = save.turno || 'jugador';
-      fase    = save.fase ?? 1;
-
-      // Fondo (limpiar url("..."))
-      const bg = (save.background||'').trim();
-      if (bg){
-        setBackgroundAsset(bg.replace(/^url\((.*)\)$/,'$1').replace(/^"(.*)"$/,'$1'));
-      }
-
-      players = (save.players||[]).map(o=>Object.assign({}, o));
-      enemies = (save.enemies||[]).map(o=>Object.assign({}, o));
-      tutorial = Object.assign({}, tutorial, save.tutorial||{});
-
-      // Ocultar/mostrar escenas según sceneId
-      if (portada) portada.style.display = "none";
-      btnGuardar.style.display = 'block';
-
-      if (sceneId === 'intro'){
-        if (intro){ intro.style.display='block'; }
-        introPageIndex = save.intro?.index ?? 0;
-        showIntroPage(introPageIndex);
-        if (dialog) dialog.style.display='none';
-        mapa.style.display='none';
-      }
-      else if (sceneId === 'dialog1'){
-        currentDialogLines = dialogLines1;
-        afterDialogAction  = 'startTutorial';
-        dlgIndex = save.dialog?.index ?? 0;
-        resetDialogPortraitPositions();
-        if (dialog){ dialog.style.display='block'; showCurrentDialog(); }
-        if (intro) intro.style.display='none';
-        mapa.style.display='none';
-      }
-      else if (sceneId === 'tutorial'){
-        tutorial.active = true;
-        if (intro) intro.style.display='none';
-        if (dialog) dialog.style.display='none';
-        mapa.style.display='grid';
-        setTurno('jugador');
-        showTut(true); setTutText(tutorial.step===0?'Primero, selecciona a Risko.':tutTextEl?.textContent||'');
-        dibujarMapa();
-      }
-      else if (sceneId === 'battle1'){
-        if (intro) intro.style.display='none';
-        if (dialog) dialog.style.display='none';
-        mapa.style.display='grid';
-        dibujarMapa(); setTurno(turno);
-      }
-      else if (sceneId === 'dialog2'){
-        currentDialogLines = fortDialogLines;
-        afterDialogAction  = 'startBattleScene2';
-        dlgIndex = save.dialog?.index ?? 0;
-        resetDialogPortraitPositions();
-        if (dialog){ dialog.style.display='block'; showCurrentDialog(); }
-        if (intro) intro.style.display='none';
-        mapa.style.display='none';
-      }
-      else if (sceneId === 'battle2'){
-        if (intro) intro.style.display='none';
-        if (dialog) dialog.style.display='none';
-        mapa.style.display='grid';
-        dibujarMapa(); setTurno(turno);
-      }
-
-      ajustarTamanoTablero();
-      applyOrientationLock();
-      flashToast('Partida cargada');
-      return true;
-    }catch(e){
-      console.error('Error cargando:', e);
-      flashToast('No se pudo cargar');
-      return false;
-    }
-  }
-
-  function newGame(){
-    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
-    // Flujo estándar: Intro → Diálogo1 → Tutorial
-    sceneId = 'intro';
-    if (portada) portada.style.display = "none";
-    if (dialog)  dialog.style.display  = "none";
-    if (intro){
-      intro.style.display = "block";
-      introPageIndex = 0;
-      showIntroPage(introPageIndex);
-    }
-    btnGuardar.style.display = 'block';
-    applyOrientationLock();
-    saveGame('auto');
-  }
-
-  // Toast simple
-  let toast;
-  function flashToast(text){
-    try{
-      if (!toast){
-        toast = document.createElement('div');
-        Object.assign(toast.style,{
-          position:'fixed', left:'50%', bottom:'16%',
-          transform:'translateX(-50%)',
-          background:'rgba(0,0,0,.75)', color:'#fff',
-          border:'1px solid rgba(255,255,255,.25)',
-          padding:'8px 12px', borderRadius:'10px',
-          fontWeight:'800', zIndex:26000, display:'none'
-        });
-        document.body.appendChild(toast);
-      }
-      toast.textContent = text;
-      toast.style.display = 'block';
-      setTimeout(()=>{ toast.style.display='none'; }, 1600);
-    }catch(e){}
-  }
-
-  // ---------- Escena 2: helper ----------
-  function startBattleScene2FromWin(){
-    overlayWin.style.display = "none";
-    startScene2Dialog();
-  }
-
-  // ---------- INIT ----------
+  // ---------- Init ----------
   function init(){
-    // Estado base de UI
-    if (portada) {
-      portada.style.display = "flex";
-      if (btnCargar) btnCargar.disabled = !hasSave();
-    }
+    players=[makeKnight(),makeArcher()];
+    ajustarTamanoTablero(); spawnFase(); dibujarMapa();
+    if (btnContinuar) btnContinuar.onclick=()=>{ overlayWin.style.display="none"; location.reload(); };
+
+    // Estado inicial
+    if (portada) portada.style.display = "flex";
     if (intro)   intro.style.display   = "none";
     if (dialog)  dialog.style.display  = "none";
     if (mapa)    mapa.style.display    = "none";
-    btnGuardar.style.display = 'none';
 
-    // Pre-draw invisible para evitar saltos (no altera flujo)
-    players=[makeKnight(),makeArcher()];
-    ajustarTamanoTablero(); spawnFase(); dibujarMapa();
-    hookWinContinue();
-
-    // Nueva partida (onclick normal)
-    if (btnNueva) {
-      btnNueva.onclick = ()=> newGame();
-    }
-    // Cargar partida (onclick normal)
-    if (btnCargar){
-      btnCargar.onclick = ()=> {
-        const ok = loadGame();
-        if (!ok){ flashToast('No hay partida que cargar'); }
-      };
-    }
-
-    // TRIPLE SEGURO: exportar funciones + delegación global
-    window.TH_newGame  = function(){ newGame(); };
-    window.TH_loadGame = function(){ loadGame(); };
-    document.addEventListener('click', (ev)=>{
-      const btnNP = ev.target.closest('#btnNuevaPartida');
-      const btnCP = ev.target.closest('#btnCargarPartida');
-      if (btnNP){ ev.preventDefault(); newGame(); }
-      if (btnCP){ ev.preventDefault(); loadGame(); }
-    });
-
-    // Intro → siguiente / diálogo 1
-    if (btnIntroNext){
-      btnIntroNext.onclick = ()=>{
-        const page = INTRO_PAGES[introPageIndex];
-        if (introTyping){
-          clearTimeout(introTypeTimer);
-          introTextEl.textContent = page.text;
-          introTextEl.classList.remove('type-cursor');
-          introTyping = false;
-          return;
-        }
-        if (introPageIndex < INTRO_PAGES.length - 1){
-          introPageIndex++;
+    if (btnJugar){
+      btnJugar.onclick = ()=>{
+        portada.style.display = "none";
+        if (intro){
+          intro.style.display = "block";
+          introPageIndex = 0;
           showIntroPage(introPageIndex);
-          saveGame('auto');
+        } else if (dialog){
+          dlgIndex = 0; dialog.style.display = "block"; showCurrentDialog();
         } else {
-          if (intro) intro.style.display = "none";
-          sceneId = 'dialog1';
-          currentDialogLines = dialogLines1;
-          afterDialogAction  = 'startTutorial';
-          dlgIndex = 0; dialog.style.display = "block";
-          resetDialogPortraitPositions();
-          showCurrentDialog();
-          saveGame('auto');
+          // Si no hay intro/diálogo, se puede arrancar tutorial directamente:
+          startTutorial();
         }
         applyOrientationLock();
       };
     }
 
-    // Diálogo avanzar
-    if (btnDialogNext) btnDialogNext.onclick = ()=>{
-      advanceDialog();
-      saveGame('auto'); // guardar índice de diálogo
-    };
+    if (btnIntroNext){
+      btnIntroNext.onclick = ()=>{
+        const page = INTRO_PAGES[introPageIndex];
+        if (introTyping){ clearTimeout(introTypeTimer); introTextEl.textContent = page.text; introTextEl.classList.remove('type-cursor'); introTyping = false; return; }
+        if (introPageIndex < INTRO_PAGES.length - 1){
+          introPageIndex++; showIntroPage(introPageIndex);
+        } else {
+          if (intro) intro.style.display = "none";
+          if (dialog){ dlgIndex = 0; dialog.style.display = "block"; showCurrentDialog(); }
+          else { startTutorial(); }
+        }
+        applyOrientationLock();
+      };
+    }
 
-    // Debug rejilla (G)
-    document.addEventListener("keydown", (e)=>{
-      if(e.key==="g" || e.key==="G"){
-        mapa.classList.toggle("debug");
-      }
-    });
+    if (btnDialogNext) btnDialogNext.onclick = advanceDialog;
+
+    // Rejilla debug
+    document.addEventListener("keydown", (e)=>{ if(e.key==="g"||e.key==="G"){ mapa.classList.toggle("debug"); } });
 
     setupOrientationLock();
   }
-
-  // Enganchar init cuando el DOM esté listo
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  init();
 })();
