@@ -1,29 +1,30 @@
 :root{
-  --cell: 40px; /* recalculada por JS */
+  /* Dimensiones del tablero 16:9 en horizontal */
+  --cell: 48px;          /* recalculada por JS */
   --gap: 0px;
   --cols: 16;
   --rows: 9;
-  --npRows: 2;
-  --hudRows: 1.6;
-  --hudOffset: 0.2;
 
-  /* Fondo global (el script lo cambia por escena; por defecto .PNG) */
+  /* Filas no jugables al fondo (HUD encima) */
+  --npRows: 2;
+
+  /* Fondo compartido (se cambia por JS con setBackgroundAsset) */
   --bg-url: url("assets/background.PNG");
 }
 
+/* Reset y layout base */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body{
-  font-family: system-ui, Arial, sans-serif;
+body {
   margin: 0;
+  font-family: system-ui, Arial, sans-serif;
+  color: #fff;
   height: 100dvh;
   min-height: -webkit-fill-available;
-  color: #fff;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
-
   background-image: var(--bg-url);
   background-size: cover;
   background-position: center;
@@ -31,151 +32,212 @@ body{
   background-color: #000;
 }
 
-/* ---------- Bloqueo orientación ---------- */
-#orientationBlocker{
-  position: fixed; inset: 0; z-index: 20000;
-  display: grid; place-items: center;
-  background: rgba(0,0,0,.85);
-  backdrop-filter: blur(2px);
-}
-#orientationBlocker .obx{
-  background: #101418; color: #fff;
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 14px; padding: 18px 16px;
-  width: min(86vw, 420px); text-align: center;
-  font-weight: 700; box-shadow: 0 12px 28px rgba(0,0,0,.45);
-}
-
 /* ---------- Portada ---------- */
-#portada{
-  position: fixed; inset: 0; z-index: 10000;
-  display: flex; align-items: center; justify-content: center;
+#portada {
+  position: fixed;
+  inset: 0;
   background: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  z-index: 10000;
 }
-#portada .portada-img{
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: center;
+#portada .portada-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
   pointer-events: none;
 }
-.btn-jugar{
-  position: absolute; bottom: max(8vh, 52px);
-  padding: 14px 26px; font-size: 20px; font-weight: 800;
-  border-radius: 12px; border: 2px solid #145a32;
+.portada-actions{
+  position: absolute;
+  bottom: 10%;
+  display: flex;
+  gap: 12px;
+}
+.btn {
+  padding: 14px 22px;
+  font-size: 18px;
+  font-weight: 800;
+  border-radius: 12px;
+  border: 2px solid #145a32;
   background: linear-gradient(180deg, #27ae60, #1e8449);
-  color: #fff; cursor: pointer;
+  color: #fff;
+  cursor: pointer;
   box-shadow: 0 4px 14px rgba(0,0,0,.4);
 }
-.btn-jugar:hover{ background: linear-gradient(180deg, #2ecc71, #229954); }
-button{ padding: 8px 12px; font-size: 14px; border-radius: 10px; border: 1px solid #c9d2e3; background: #fff; color: #111; cursor: pointer; }
-button.primary{ background: #1b76ff; color: #fff; border-color: #1b76ff; }
-.small{ padding: 7px 12px; font-size: 13px; border-radius: 10px; }
+.btn:hover { background: linear-gradient(180deg, #2ecc71, #229954); }
+.btn.secondary{
+  border-color: #2c3e50;
+  background: linear-gradient(180deg, #5d6d7e, #34495e);
+}
+.btn.secondary:hover{ background: linear-gradient(180deg, #7f8c8d, #2c3e50); }
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-/* ---------- Intro (2 pantallas) ---------- */
-#introScene{ position: fixed; inset: 0; z-index: 12000; display: none; }
-.intro-img{
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: center;
+/* ---------- Botón flotante Guardar ---------- */
+#btnGuardar{
+  position: fixed;
+  right: 12px;
+  top: calc(env(safe-area-inset-top) + 12px);
+  z-index: 24000;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: .2px;
+  backdrop-filter: blur(3px);
+  display: none; /* se muestra fuera de la portada */
+}
+
+/* ---------- Escena de INTRO ---------- */
+#introScene{
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: none;
+}
+#introScene .intro-bg { position: absolute; inset: 0; }
+#introImg{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;        /* La imagen ocupa toda la pantalla */
+  object-position: center;
 }
 .intro-box{
-  position: absolute; left: 4%; right: 4%;
-  bottom: 3.5%;
-  background: rgba(7,12,16,1); /* opaco */
+  position: absolute;
+  left: 4%; right: 4%; bottom: 4%;
+  background: #0b1218;    /* opaca */
   border: 1px solid rgba(255,255,255,.14);
-  border-radius: 12px; padding: 12px 14px 14px 14px;
+  border-radius: 12px;
+  padding: 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,.35);
 }
 .intro-text{
-  font-size: 15px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #e6ecf4;
+  min-height: 3.2em;
+  white-space: pre-wrap;
 }
-.intro-cta{ display: flex; justify-content: flex-end; }
-
-/* ---------- Diálogo ---------- */
-#dialogScene{ position: fixed; inset: 0; z-index: 13000; display: none; }
-#dialogScene .dialog-bg{
-  position: absolute; inset: 0;
-  background-image: var(--bg-url);
-  background-size: cover; background-position: center;
-  filter: brightness(.95) saturate(1.05);
+.intro-cta{ margin-top: 10px; display: flex; justify-content: flex-end; }
+.type-cursor::after{
+  content: "▌";
+  display: inline-block;
+  margin-left: 2px;
+  animation: cursorBlink .9s steps(1) infinite;
 }
-
-/* Personajes más abajo (para no tapar la caja) */
-.dialog-char{
-  position: absolute;
-  bottom: 8%;          /* más bajo que antes, como pediste */
-  height: 60vh;
-  max-height: 68%;
-  max-width: 44vw;
-  object-fit: contain;
-  image-rendering: auto;  /* nitidez para ilustraciones */
-  opacity: .9;
-  pointer-events: none;
-}
-.dialog-char.right{ right: 3%; }
-.dialog-char.left{  left:  3%; }
-.dialog-char.stack2{ right: 22%; } /* separación para que no se solapen en el mismo lado */
-.dialog-char.flip{ transform: scaleX(-1); } /* Hans mirando al Guardián cuando está a la derecha */
-
-.dialog-box{
-  position: absolute; left: 4%; right: 4%; bottom: 3.5%;
-  background: rgba(7,12,16,1); /* opaco */
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 12px; padding: 10px 12px 12px 12px;
-  box-shadow: 0 10px 24px rgba(0,0,0,.35);
-  z-index: 2; /* SIEMPRE por delante de personajes */
-}
-.dialog-name{ font-weight: 800; margin-bottom: 6px; color: #fff; letter-spacing: .2px; }
-.dialog-text{ font-size: 15px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px; }
-
-.type-cursor::after{ content: "▌"; display: inline-block; margin-left: 2px; animation: cursorBlink .9s steps(1) infinite; }
 @keyframes cursorBlink { 50% { opacity: 0; } }
 
-/* ---------- Banner inicio combate ---------- */
-.battle-banner{
-  position: fixed; inset: 0; z-index: 12500;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: clamp(22px, 4vw, 40px);
-  letter-spacing: 1px; color: #fff;
-  text-shadow: 0 2px 14px rgba(0,0,0,.6);
-  background: rgba(0,0,0,.35);
-  backdrop-filter: blur(2px);
+/* ---------- Escena de DIÁLOGO ---------- */
+#dialogScene{
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: none;
 }
+#dialogScene .dialog-bg{
+  position: absolute;
+  inset: 0;
+  background-image: var(--bg-url);
+  background-size: cover;
+  background-position: center;
+  filter: brightness(.95) saturate(1.05);
+}
+/* Retratos: NÍTIDOS (no pixelated) */
+.dialog-char{
+  position: absolute;
+  bottom: 22%;
+  height: 58%;
+  max-width: 44vw;
+  object-fit: contain;
+  image-rendering: auto; /* ilustraciones HD */
+  opacity: .6;
+  transition: opacity .2s ease;
+  pointer-events: none;
+}
+.dialog-char.left  { left: 2%;  transform: none; }
+.dialog-char.right { right: 2%; transform: none; }
+.dialog-char.flip  { transform: scaleX(-1); }
+.dialog-char.speaking{ opacity: 1; }
+
+/* Caja de diálogo: opaca y siempre delante */
+.dialog-box{
+  position: absolute;
+  left: 4%; right: 4%; bottom: 4%;
+  background: #0b1218;   /* opaca */
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px;
+  padding: 10px 12px 12px 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  z-index: 12100;
+}
+.dialog-name{ font-weight: 800; margin-bottom: 6px; color: #fff; letter-spacing: .2px; }
+.dialog-text{ font-size: 14px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px; white-space: pre-wrap; }
+.dialog-cta{ display: flex; justify-content: flex-end; }
+.dialog-box .small{ padding: 7px 12px; font-size: 13px; border-radius: 10px; }
+
+button { padding: 7px 10px; font-size: 13px; border-radius: 10px; border: 1px solid #c9d2e3; background: white; color: #111; cursor: pointer; }
+button.primary { background: #1b76ff; color: white; border-color: #1b76ff; }
 
 /* ---------- Overlay victoria ---------- */
-.overlay{
-  position: fixed; inset: 0; z-index: 14000;
+.overlay {
+  position: fixed; inset: 0; z-index: 9999;
   display: grid; place-items: center;
   background: rgba(0,0,0,.55);
   backdrop-filter: blur(4px);
 }
 .overlay::before{
-  content:""; position:absolute; inset:0; z-index:-1;
-  background-image: var(--bg-url);
-  background-size: cover; background-position: center;
-  transform: scale(1.02); filter: brightness(.9);
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background-image: var(--bg-url); background-size: cover;
+  background-position: center; background-repeat: no-repeat;
+  transform: scale(1.02); filter: brightness(0.9);
 }
 .overlay-box{
-  background:#101418; border:1px solid rgba(255,255,255,.15);
-  border-radius:14px; padding:22px 20px; width:min(90vw, 420px);
-  text-align:center; box-shadow:0 12px 28px rgba(0,0,0,.45);
+  background: #101418; border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px; padding: 22px 20px;
+  width: min(90vw, 420px); text-align: center;
+  box-shadow: 0 12px 28px rgba(0,0,0,.45);
 }
-.overlay-box h1{ margin:0 0 14px 0; }
+.overlay-box h1{ margin: 0 0 14px 0; }
 
 /* ---------- Banner de turno ---------- */
 .turn-banner{
-  position: fixed; left: 50%;
+  position: fixed;
+  left: 50%;
   top: max(10px, env(safe-area-inset-top));
   transform: translateX(-50%);
-  z-index: 15000;
+  z-index: 8000;
   background: rgba(0,0,0,.6);
   border: 1px solid rgba(255,255,255,.25);
-  color: #fff; padding: 8px 14px; border-radius: 12px;
-  font-weight: 800; letter-spacing: .4px; text-transform: uppercase;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
   backdrop-filter: blur(3px);
   box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  display: none;
+}
+
+/* ---------- Banner COMIENZA EL COMBATE ---------- */
+#battleStartBanner{
+  position: fixed; inset: 0;
+  display: none; align-items: center; justify-content: center;
+  z-index: 25000;
+  background: rgba(0,0,0,.7);
+  font-size: 42px; font-weight: 900; color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.6);
 }
 
 /* ---------- Tablero 16x9 ---------- */
-#mapa{
+#mapa {
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: repeat(var(--cols), var(--cell));
@@ -191,71 +253,74 @@ button.primary{ background: #1b76ff; color: #fff; border-color: #1b76ff; }
   box-shadow: 0 8px 20px rgba(0,0,0,.3);
   position: relative;
 }
+.celda { width: var(--cell); height: var(--cell); display: grid; place-items: center; cursor: pointer; position: relative; z-index: 0; }
+.celda.movible { outline: 3px solid rgba(48,140,255,0.55); outline-offset: -1px; }
+.celda.seleccionada{ box-shadow: inset 0 0 0 3px #1b76ff; }
 
-/* HUD dentro del mapa */
+/* Sprites del tablero: pixel-art nítido */
+.fichaMiniImg {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* HUD (ficha + acciones) FIJO al pie, sobre el mapa */
 #hud{
-  position: absolute; left: 0; right: 0;
-  bottom: 0; /* pegado abajo */
-  height: calc(var(--cell) * var(--hudRows));
-  padding: 6px 8px;
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 12050;  /* por encima del tablero */
   display: flex; flex-direction: column; gap: 6px;
-  pointer-events: auto; z-index: 5;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  pointer-events: auto;
 }
-#ficha{
-  display: none; width: 100%; text-align: left;
-  background: rgba(16,20,24,.96);
-  color: #ddd; border: 1px solid rgba(255,255,255,.12);
-  border-radius: 10px; padding: 6px 8px;
+#ficha {
+  display: none;
+  width: min(920px, 96vw);
+  margin: 0 auto;
+  background: rgba(16,20,24,.92);
+  color: #ddd;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 6px 8px;
 }
-#acciones{ display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-
-/* Tarjeta ficha */
-.card{
-  display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: center;
+.card {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 8px; align-items: center;
 }
-.card .portrait{
+.card .portrait {
   width: 52px; height: 52px; border-radius: 8px;
   background-size: cover; background-position: center; background-repeat: no-repeat;
   border: 1px solid rgba(255,255,255,.12);
 }
-.card .name{ font-weight: 800; margin: 0 0 4px 0; color:#fff; }
-.meta{ margin: 0 0 4px 0; font-size: 12px; color: #c8d0df; }
-.hp{ display: flex; align-items: center; gap: 6px; }
-.hp .bar{
-  position: relative; flex: 1; height: 10px;
-  background: #243042; border: 1px solid rgba(255,255,255,.12);
-  border-radius: 999px; overflow: hidden;
-}
-.hp .bar > span{ display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width .25s ease; }
-.hp .value{ font-size: 11px; min-width: 76px; text-align: right; color:#e6e9ef; }
-
-/* Celdas y selección */
-.celda{ width: var(--cell); height: var(--cell); display: grid; place-items: center; position: relative; cursor: pointer; }
-.celda.movible{ outline: 3px solid rgba(48,140,255,0.55); outline-offset: -1px; }
-.celda.seleccionada{ box-shadow: inset 0 0 0 3px #1b76ff; }
-
-.fichaMiniImg{
-  width: 90%; height: 90%; object-fit: contain; image-rendering: pixelated;
-  position: relative; z-index: 1; pointer-events: none;
+.card .name { font-weight: 800; margin: 0 0 4px 0; color:#fff; }
+.meta { margin: 0 0 4px 0; font-size: 12px; color: #c8d0df; }
+.hp { display: flex; align-items: center; gap: 6px; }
+.hp .bar { position: relative; flex: 1; height: 10px; background: #243042; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; overflow: hidden; }
+.hp .bar > span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width .25s ease; }
+.hp .value { font-size: 11px; min-width: 76px; text-align: right; color:#e6e9ef; }
+#acciones {
+  width: min(920px, 96vw);
+  margin: 0 auto;
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
 }
 
-/* Rejilla debug (G) */
-.grid-label{
-  position: absolute; left: 3px; top: 3px;
-  font-size: 10px; color: rgba(255,255,255,.85);
-  text-shadow: 0 2px 4px rgba(0,0,0,.7);
-  pointer-events: none;
-}
-
-/* FX */
+/* ---------- FX ---------- */
 @keyframes flash-yellow { 0% { background-color: rgba(255,230,0,.75);} 100% {background-color: transparent;} }
-@keyframes flash-red    { 0% { background-color: rgba(255,60,60,.75);} 100% {background-color: transparent;} }
-.celda.flash-player{ animation: flash-yellow .28s ease-out; }
-.celda.flash-enemy { animation: flash-red    .28s ease-out; }
+@keyframes flash-red    { 0% { background-color: rgba(255,60,60,.75);}  100% {background-color: transparent;} }
+.celda.flash-player { animation: flash-yellow .28s ease-out; }
+.celda.flash-enemy  { animation: flash-red .28s ease-out; }
 @keyframes blink-hit { 0%,100%{opacity:1;} 50%{opacity:.12;} }
 .fichaMiniImg.blink-hit { animation: blink-hit .6s linear 2; }
+@keyframes dmg-pop { 0%{ transform:translate(-50%,-10px) scale(1); opacity:1;} 100%{ transform:translate(-50%,-42px) scale(1.05); opacity:0; } }
+.dmg-float { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); font-weight: 900; font-size: 15px; padding: 2px 6px; border-radius: 6px; color:#111; background:#fff; border:1px solid rgba(0,0,0,.1); box-shadow: 0 2px 6px rgba(0,0,0,.15); animation: dmg-pop .6s ease-out forwards; }
+.dmg-player { border-color: rgba(255,200,0,.6); }
+.dmg-enemy  { border-color: rgba(255,80,80,.6); }
 @keyframes death-pop { 0%{opacity:1; transform: scale(1);} 100%{opacity:0; transform: scale(1.15);} }
-.death-pop{ animation: death-pop .35s ease-out forwards; }
+.death-pop { animation: death-pop .35s ease-out forwards; }
 @keyframes screen-shake {
   0% { transform: translate(0, 0); }
   20% { transform: translate(-6px, 4px); }
@@ -264,13 +329,70 @@ button.primary{ background: #1b76ff; color: #fff; border-color: #1b76ff; }
   80% { transform: translate(4px, -2px); }
   100% { transform: translate(0, 0); }
 }
-.shake{ animation: screen-shake 0.4s ease-in-out; }
+.shake { animation: screen-shake 0.4s ease-in-out; }
+
+/* ---------- Bloqueo vertical ---------- */
+#orientationBlocker{
+  position: fixed; inset: 0; z-index: 20000;
+  display: none; place-items: center;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(2px);
+}
+#orientationBlocker .obx{
+  background: #101418; color: #fff;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px; padding: 18px 16px;
+  width: min(86vw, 420px); text-align: center;
+  font-weight: 700; box-shadow: 0 12px 28px rgba(0,0,0,.45);
+}
+
+/* ---------- Tutorial Overlay ---------- */
+#tutorialOverlay{
+  position: fixed; inset: 0; z-index: 22000;
+  display: none;
+  /* IMPORTANTE: no bloquear clics del HUD/mapa */
+  pointer-events: none;
+}
+#tutorialOverlay .tut-box{
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 18%;
+  width: min(900px, 94vw);
+  background: rgba(0,0,0,.85);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 700;
+  pointer-events: auto; /* solo la caja capta clic si pusieras botones */
+}
+#tutorialOverlay .tut-text{
+  font-size: 14px; color: #e6ecf4; text-align: center;
+}
+
+/* ---------- Debug rejilla (tecla G) ---------- */
+#mapa.debug .celda::after{
+  content: attr(data-key);
+  position: absolute;
+  bottom: 2px; right: 2px;
+  font-size: 9px; color: rgba(255,255,255,.8);
+}
 
 /* Ultra-compacto */
-@media (max-width: 380px){
-  .card { grid-template-columns: 46px 1fr; gap: 6px; }
-  .card .portrait { width: 46px; height: 46px; }
-  .meta { font-size: 11px; }
-  .hp .value { font-size: 10px; min-width: 64px; }
-  button { padding: 7px 10px; font-size: 12px; }
+@media (max-width: 420px){
+  .dialog-char{ height: 54%; bottom: 24%; }
+  .dialog-box{ padding: 8px 10px; }
+  #ficha .card{ grid-template-columns: 46px 1fr; gap: 6px; }
+  .card .portrait{ width: 46px; height: 46px; }
+  .meta{ font-size: 11px; }
+  .hp .value{ font-size: 10px; min-width: 64px; }
+  button{ padding: 6px 9px; font-size: 12px; }
+  }
+  
+  /* Asegura que los botones estén por delante de la portada-imagen */
+.portada-actions{ 
+  position: absolute;
+  bottom: 10%;
+  display: flex;
+  gap: 12px;
+  z-index: 10010;  /* <— añadido */
 }
