@@ -1,23 +1,21 @@
-/* build: landscape-16x9 · Estable · Guardado/Carga · Intro x4 → Diálogo → Tutorial → Combate 1 → (Victoria) Fortaleza: Diálogo → Combate 2 con Guardián
-   Fixes incluidos:
-   - Botón ATACAR siempre visible (y deshabilitado si el tutorial aún no lo permite)
-   - Tutorial garantizado tras el primer diálogo (y tecla T para forzarlo)
-   - Avance automático de oleadas / fin sin tener que “Pasar turno”
-   - Enemigos del primer combate se llaman “Soldado”
-   - Fondo usa .PNG; setBackgroundAsset controla el background del escenario
-   - Rejilla debug con tecla G
+/* build: restore · landscape-16x9 · Intro x2 → Diálogo → Tutorial → Combate1 → Fortaleza: Diálogo (Hans a la derecha con separación y flip) → Combate2
+   - Ataque visible, tutorial guiado y funcionando
+   - Oleadas/fin automáticos
+   - Nombres “Soldado”
+   - Fondo .PNG fijo por escena
+   - Sin efectos “nuevos” en diálogos (solo typewriter y énfasis simple)
 */
 (function(){
-  // --- Config tablero (16×9 horizontal) ---
+  // --- Tablero 16×9 ---
   const ROWS = 9, COLS = 16;
-  const NON_PLAYABLE_BOTTOM_ROWS = 2; // filas reservadas HUD (no jugables)
+  const NON_PLAYABLE_BOTTOM_ROWS = 2;
 
   // Parámetros combate
   const PLAYER_MAX_MP     = 5;
   const ENEMY_MAX_MP      = 3;
   const ENEMY_BASE_DAMAGE = 50;
 
-  // Estado global
+  // Estado
   let turno = "jugador";
   let fase = 1;
   let enemies = [];
@@ -26,25 +24,26 @@
   let celdasMovibles = new Set();
   let distSel = null;
 
-  // Guardado
-  const SAVE_KEY = 'TH_SAVE_V1';
-
-  // ---- Helpers gráficos: tolerancia .PNG/.png ----
-  function loadImgCaseTolerant(imgEl, src){
-    imgEl.src = src;
-    imgEl.onerror = ()=>{
-      if (src.endsWith('.PNG')) imgEl.src = src.replace(/\.PNG$/, '.png');
-      else if (src.endsWith('.png')) imgEl.src = src.replace(/\.png$/, '.PNG');
-      imgEl.onerror = null;
+  // --- Helper: tolerancia .PNG/.png ---
+  function loadImgCaseTolerant(el, src){
+    el.src = src;
+    el.onerror = ()=>{
+      if (src.endsWith('.PNG')) el.src = src.replace(/\.PNG$/, '.png');
+      else if (src.endsWith('.png')) el.src = src.replace(/\.png$/, '.PNG');
+      el.onerror = null;
     };
   }
 
-  // ---------- Texto/Intro ----------
+  // ---------- Intro (2 páginas) ----------
   const INTRO_PAGES = [
-    { img:"assets/Inicio1.PNG", text:"El reino de Orbis era un lugar de paz, donde hacía mucho que la espada y la magia no se usaban en combate y sus amables gentes disfrutaban de la vida." },
-    { img:"assets/Inicio2.PNG", text:"De la noche a la mañana, el actual regente, Adriem III, fue asesinado sin compasión y su trono usurpado." },
-    { img:"assets/Inicio3.PNG", text:"Un noble al que pocos conocían, el autoproclamado rey Frortris, se hizo con el poder. Muchos comentan que ni siquiera es humano…" },
-    { img:"assets/Inicio4.PNG", text:"Tan solo la capitana de la guardia del rey Adriem logró huir, con un pensamiento claro: Cobrar venganza." }
+    {
+      img: "assets/Inicio1.PNG",
+      text: "El reino de Orbis era un lugar de paz, donde hacía mucho que la espada y la magia no se usaban en combate y sus amables gentes disfrutaban de la vida."
+    },
+    {
+      img: "assets/Inicio2.PNG",
+      text: "Pero todo cambió cuando el Rey Ardiem fue traicionado y su fiel capitana de la Guardia, obligada a huir…"
+    }
   ];
   let introTyping=false, introTypeTimer=null, introPageIndex=0;
 
@@ -73,8 +72,7 @@
 
   // ---------- DOM ----------
   const portada       = document.getElementById("portada");
-  const btnNueva      = document.getElementById("btnNuevaPartida");
-  const btnCargar     = document.getElementById("btnCargarPartida");
+  const btnJugar      = document.getElementById("btnJugar");
 
   const intro         = document.getElementById("introScene");
   const introImg      = document.getElementById("introImg");
@@ -86,9 +84,9 @@
   const dialogTextEl  = document.getElementById("dialogText");
   const btnDialogNext = document.getElementById("btnDialogNext");
 
-  const charRisko     = document.getElementById("charKnight");   // Risko (derecha)
-  const charHans      = document.getElementById("charArcher");   // Hans (izquierda)
-  let   charGuardian  = document.getElementById("charGuardian"); // se crea si no existe
+  const charRisko     = document.getElementById("charKnight");   // derecha
+  const charHans      = document.getElementById("charArcher");   // izquierda (pero en fortaleza pasa a derecha stack2 + flip)
+  let   charGuardian  = document.getElementById("charGuardian"); // izquierda, aparece más tarde
 
   const mapa          = document.getElementById("mapa");
   const acciones      = document.getElementById("acciones");
@@ -101,34 +99,23 @@
   const battleBanner  = document.getElementById("battleStartBanner");
   const battleSound   = document.getElementById("battleStartSound");
 
-  // Crear imagen Guardián si no existe (para la escena de fortaleza)
+  // Si no existiera el nodo del Guardián, créalo (compatibilidad)
   if (!charGuardian && dialog){
     charGuardian = document.createElement("img");
     charGuardian.id = "charGuardian";
-    charGuardian.className = "dialog-char left"; // aparecerá a la izquierda, frente a Risko y Hans
+    charGuardian.className = "dialog-char left";
     charGuardian.style.display = "none";
     dialog.appendChild(charGuardian);
   }
 
-  // Cargar retratos (tolerantes a may/min)
+  // Cargar retratos (tolerante a may/min)
   if (charRisko)    loadImgCaseTolerant(charRisko,    "assets/GuerreraDialogo.PNG");
   if (charHans)     loadImgCaseTolerant(charHans,     "assets/ArqueroDialogo.PNG");
   if (charGuardian) loadImgCaseTolerant(charGuardian, "assets/GuardianDialogo.PNG");
 
-  // Botón Guardar (si no existe, lo creamos)
-  let btnGuardar = document.getElementById("btnGuardar");
-  if (!btnGuardar){
-    btnGuardar = document.createElement("button");
-    btnGuardar.id = "btnGuardar";
-    btnGuardar.textContent = "Guardar";
-    btnGuardar.style.display = "none";
-    document.body.appendChild(btnGuardar);
-  }
-
   // ---------- Utilidades UI ----------
-  function setBackgroundAsset(assetPathExact){
-    // Asegura .PNG correcto
-    document.documentElement.style.setProperty('--bg-url', `url("${assetPathExact}")`);
+  function setBackgroundAsset(pathExact){
+    document.documentElement.style.setProperty('--bg-url', `url("${pathExact}")`);
   }
   function showBattleStart(){
     if (battleBanner){
@@ -151,7 +138,7 @@
     showTurnBanner(t==="jugador" ? "TU TURNO" : t==="enemigo" ? "TURNO ENEMIGO" : "FIN DE PARTIDA");
   }
 
-  // ---------- Layout / orientación ----------
+  // ---------- Layout ----------
   function ajustarTamanoTablero(){
     const vw = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
     const vh = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
@@ -189,29 +176,34 @@
   const enLineaRecta = (a,b)=>(a.fila===b.fila) || (a.col===b.col);
   function getCelda(f,c){ return mapa.querySelector(`.celda[data-key="${f},${c}"]`); }
 
-  // ---------- Diálogo: posiciones (básicas) ----------
+  // ---------- Diálogo: posiciones ----------
   function resetDialogPortraitPositions(){
     if (charRisko){
-      charRisko.classList.remove('left','flip','stack2'); charRisko.classList.add('right'); charRisko.style.opacity=".9";
+      charRisko.classList.remove('left','flip','stack2'); charRisko.classList.add('right'); charRisko.style.opacity=".95";
     }
     if (charHans){
-      charHans.classList.remove('right','flip','stack2'); charHans.classList.add('left'); charHans.style.opacity=".9";
+      charHans.classList.remove('right','flip','stack2'); charHans.classList.add('left'); charHans.style.opacity=".95";
     }
     if (charGuardian){
       charGuardian.style.display="none";
-      charGuardian.classList.remove('right','flip','stack2'); charGuardian.classList.add('left'); charGuardian.style.opacity=".9";
+      charGuardian.classList.remove('right','flip','stack2'); charGuardian.classList.add('left'); charGuardian.style.opacity=".95";
     }
   }
-  // Fortaleza: a partir de la 3ª línea aparece el Guardián, Risko y Hans a la derecha (Hans mirando al Guardián)
+  // Fortaleza: a partir de la 3ª línea aparece el Guardián; Risko y Hans a la derecha sin solaparse; Hans “flip” mirando al Guardián
   function applyFortressDialogLayout(){
     if (currentDialog !== dialogLinesFortaleza) return;
     if (!charRisko || !charHans || !charGuardian) return;
     const guardianHasAppeared = dlgIndex >= 2;
     if (guardianHasAppeared){
       charGuardian.style.display = "block";
-      charGuardian.classList.remove('right','flip','stack2'); charGuardian.classList.add('left'); // Guardián izquierda
-      charRisko.classList.remove('left','flip','stack2');     charRisko.classList.add('right');   // Risko derecha
-      charHans.classList.remove('left'); charHans.classList.add('right','stack2','flip');         // Hans a la derecha, separado y mirando al Guardián
+      charGuardian.classList.remove('right','flip','stack2');
+      charGuardian.classList.add('left');   // Guardián a la izquierda
+
+      charRisko.classList.remove('left','flip','stack2');
+      charRisko.classList.add('right');     // Risko a la derecha (principal)
+
+      charHans.classList.remove('left');
+      charHans.classList.add('right','stack2','flip'); // Hans también a la derecha, desplazado y mirando al Guardián
     } else {
       resetDialogPortraitPositions();
     }
@@ -247,10 +239,10 @@
   function setActiveSpeaker(){
     const line = currentDialog[dlgIndex];
     if (!line) return;
-    [charRisko, charHans, charGuardian].forEach(el=>{ if(el){ el.classList.remove('speaking'); el.style.opacity=".6"; }});
-    if (line.who==='risko'   && charRisko)   { charRisko.style.opacity='1';   charRisko.classList.add('speaking'); }
-    if (line.who==='hans'    && charHans)    { charHans.style.opacity='1';    charHans.classList.add('speaking'); }
-    if (line.who==='guardian'&& charGuardian){ charGuardian.style.opacity='1';charGuardian.classList.add('speaking'); }
+    [charRisko, charHans, charGuardian].forEach(el=>{ if(el){ el.style.opacity=".6"; }});
+    if (line.who==='risko'   && charRisko)   charRisko.style.opacity='1';
+    if (line.who==='hans'    && charHans)    charHans.style.opacity='1';
+    if (line.who==='guardian'&& charGuardian)charGuardian.style.opacity='1';
     if (dialogNameEl) dialogNameEl.textContent = line.name;
   }
   function typeWriterDialog(text, speed=22){
@@ -324,39 +316,30 @@
     if(e.key==="g" || e.key==="G"){ mapa.classList.toggle("debug"); dibujarMapa(); }
   });
 
-  // ---------- HUD / Acciones ----------
+  // ---------- HUD ----------
   function botonesAccionesPara(u){
     acciones.innerHTML="";
     if (turno!=="jugador" || !u?.vivo) return;
 
-    // Tutorial: solo se permite atacar en pasos específicos
-    // step 3: Risko (K) ataca | step 6: Hans (A) ataca
     const allowAttack =
       !tutorial.active ||
       (tutorial.active && ((tutorial.step===3 && u.id==="K") || (tutorial.step===6 && u.id==="A")));
 
-    // MP info
     const infoMp = document.createElement("div");
     infoMp.style.cssText = "align-self:center;margin-right:6px;font-weight:700;color:#fff;";
     infoMp.textContent = `MP: ${u.mp}/${PLAYER_MAX_MP}`;
     acciones.appendChild(infoMp);
 
-    // Botones ATACAR (si hay enemigos en rango)
     const objetivos = enemigosEnRango(u);
     objetivos.forEach(en=>{
       const b = document.createElement("button");
       b.className = "primary";
       b.textContent = `ATACAR ${en.nombre}`;
-      if (allowAttack){
-        b.onclick = ()=> atacarUnidadA(u,en);
-      } else {
-        b.disabled = true;
-        b.title = "Sigue las instrucciones del tutorial";
-      }
+      if (allowAttack) b.onclick = ()=> atacarUnidadA(u,en);
+      else { b.disabled = true; b.title = "Sigue las instrucciones del tutorial"; }
       acciones.appendChild(b);
     });
 
-    // Pasar turno
     const bTurn = document.createElement("button");
     bTurn.textContent = "Pasar turno";
     bTurn.onclick = endTurn;
@@ -414,7 +397,7 @@
     });
   }
 
-  // ---------- Clicks (con gating del tutorial) ----------
+  // ---------- Clicks ----------
   function manejarClick(f,c){
     if (noJugable(f)) return;
 
@@ -424,13 +407,12 @@
 
     if (turno!=="jugador") return;
 
-    // Gating tutorial
     if (tutorial.active){
-      if (tutorial.step===1 && (!pj || pj.id!=="K")) return;                      // 1: seleccionar Risko
-      if (tutorial.step===2 && pj) return;                                        // 2: mover Risko (no re-seleccionar)
-      if (tutorial.step===2 && (!celdasMovibles.has(`${f},${c}`))) return;        // casilla movible
-      if (tutorial.step===4 && (!pj || pj.id!=="A")) return;                      // 4: seleccionar Hans
-      if (tutorial.step===5 && pj) return;                                        // 5: mover Hans
+      if (tutorial.step===1 && (!pj || pj.id!=="K")) return;
+      if (tutorial.step===2 && pj) return;
+      if (tutorial.step===2 && (!celdasMovibles.has(`${f},${c}`))) return;
+      if (tutorial.step===4 && (!pj || pj.id!=="A")) return;
+      if (tutorial.step===5 && pj) return;
       if (tutorial.step===5 && (!celdasMovibles.has(`${f},${c}`))) return;
     }
 
@@ -444,7 +426,6 @@
       else { celdasMovibles.clear(); distSel=null; }
       dibujarMapa(); botonesAccionesPara(seleccionado);
 
-      // Auto-avance tutorial si ya hay enemigo en rango tras seleccionar
       if (tutorial.active){
         if (tutorial.step===1 && pj.id==="K"){
           if (enemigosEnRango(pj).length>0){ tutorial.step=3; } else { tutorial.step=2; }
@@ -472,10 +453,9 @@
         else { celdasMovibles.clear(); distSel=null; }
         dibujarMapa(); botonesAccionesPara(seleccionado);
 
-        // Avance tutorial al mover
         if (tutorial.active){
-          if (tutorial.step===2 && seleccionado.id==="K"){ tutorial.step = 3; }
-          if (tutorial.step===5 && seleccionado.id==="A"){ tutorial.step = 6; }
+          if (tutorial.step===2 && seleccionado.id==="K") tutorial.step=3;
+          if (tutorial.step===5 && seleccionado.id==="A") tutorial.step=6;
         }
       } else {
         botonesAccionesPara(seleccionado);
@@ -513,7 +493,6 @@
     return (attacker.range || []).includes(d);
   }
   function atacarUnidadA(u, objetivoRef){
-    // Gating tutorial: solo pasos 3 (Risko) y 6 (Hans)
     if (tutorial.active){
       if (!((tutorial.step===3 && u.id==="K") || (tutorial.step===6 && u.id==="A"))) return;
     }
@@ -530,12 +509,11 @@
       acciones.innerHTML=""; 
       dibujarMapa();
 
-      // Primero comprobar oleada/fin (esto puede iniciar siguiente fase o victoria)
       const advanced = checkWaveOrWin();
-      if (advanced) return; // si avanzó a otra escena/fase, no seguimos
+      if (advanced) return;
 
       comprobarCambioATurnoEnemigo();
-    }, 500);
+    }, 480);
   }
   function comprobarCambioATurnoEnemigo(){
     if (players.every(p => !p.vivo || p.acted || p.mp===0)) {
@@ -549,7 +527,7 @@
 
     for (const en of enemies) {
       if (!en.vivo) continue;
-      en.mp = typeof en.mpMax === 'number' ? en.mpMax : ENEMY_MAX_MP;
+      en.mp = ENEMY_MAX_MP;
 
       let objetivo = vivosJ[0]; let mejor = manhattan(en, objetivo);
       for (const p of vivosJ){ const d = manhattan(en, p); if (d < mejor){ mejor = d; objetivo = p; } }
@@ -579,7 +557,6 @@
 
     dibujarMapa();
 
-    // Chequeo tras IA por si ya no quedan enemigos (avanza sin esperar al jugador)
     const advanced = checkWaveOrWin();
     if (advanced) return;
 
@@ -613,12 +590,10 @@
     if (turno==="jugador") players.forEach(p=>{ p.acted=false; p.mp=PLAYER_MAX_MP; });
   }
 
-  // Avance automático; devuelve true si se ha avanzado de escena/fase
   function checkWaveOrWin(){
     if (enemies.some(e=>e.vivo)) return false;
 
-    // Si estamos en tutorial y ya no quedan enemigos: comenzar Combate 1 real
-    if (tutorial.active) {
+    if (tutorial.active) { // al acabar tutorial → combate real 1
       startBattleScene1Core();
       return true;
     }
@@ -629,25 +604,19 @@
       players.forEach(p=>{ if(p.vivo){ p.acted=false; p.mp=PLAYER_MAX_MP; } });
       setTurno("jugador");
       dibujarMapa();
-      saveGame('auto');
       return true;
     }
 
     if (fase === 2){
       setTurno("fin");
       if (overlayWin) overlayWin.style.display = "grid";
-      saveGame('auto');
       return true;
     }
-
     return false;
   }
 
   // ---------- Tutorial ----------
-  const tutorial = {
-    active:false,
-    step:0 // 1: sel Risko · 2: mover Risko · 3: atacar Risko · 4: sel Hans · 5: mover Hans · 6: atacar Hans
-  };
+  const tutorial = { active:false, step:0 };
 
   // ---------- Fábrica de unidades ----------
   const makeKnight = () => ({
@@ -669,7 +638,6 @@
     dlgIndex = 0;
     afterDialogAction = 'startTutorial';
     resetDialogPortraitPositions();
-    // Oculta HUD si estuviera visible
     if (ficha){ ficha.style.display = "none"; ficha.innerHTML=""; }
     if (acciones){ acciones.innerHTML = ""; }
     dialog.style.display = "block";
@@ -686,16 +654,14 @@
     celdasMovibles.clear();
     distSel = null;
 
-    // Jugadores
     players = [ makeKnight(), makeArcher() ];
 
-    // Enemigos tutorial (colocados para poder demostrar melee y rango)
+    // Dos enemigos pensados para el tutorial:
     enemies = [
       { id:"T1", nombre:"Soldado", fila:5, col:5, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP },
       { id:"T2", nombre:"Soldado", fila:5, col:7, vivo:true, hp:40, maxHp:40, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mpMax: ENEMY_MAX_MP }
     ];
 
-    // Mostrar tablero
     if (portada) portada.style.display="none";
     if (intro)   intro.style.display="none";
     if (dialog)  dialog.style.display="none";
@@ -703,8 +669,6 @@
 
     dibujarMapa();
     setTurno("jugador");
-    btnGuardar && (btnGuardar.style.display="block");
-    saveGame('auto');
   }
 
   function startBattleScene1Core(){
@@ -713,7 +677,6 @@
 
     setBackgroundAsset("assets/background.PNG");
 
-    // Asegura estado jugadores
     if (players.length===0) players = [ makeKnight(), makeArcher() ];
     players.forEach(p => { p.vivo = p.hp > 0; p.acted = false; p.mp = PLAYER_MAX_MP; });
 
@@ -723,8 +686,6 @@
     dibujarMapa();
     showBattleStart();
     setTurno("jugador");
-    btnGuardar && (btnGuardar.style.display="block");
-    saveGame('auto');
   }
 
   function startScene2Dialog(){
@@ -739,7 +700,6 @@
     resetDialogPortraitPositions();
     dialog.style.display = "block";
     showCurrentDialog();
-    saveGame('auto');
   }
 
   function startBattleScene2(){
@@ -763,76 +723,23 @@
       damage: 70, mpMax: 1
     });
 
-    dibujarMapa(); showBattleStart(); setTurno("jugador"); applyOrientationLock(); saveGame('auto');
+    dibujarMapa(); showBattleStart(); setTurno("jugador"); applyOrientationLock();
   }
 
-  // ---------- Guardar / Cargar ----------
-  function saveGame(mode='manual'){
-    try{
-      const save = {
-        ts: Date.now(),
-        fase, turno, players, enemies,
-        intro: {index:introPageIndex},
-        dialog: {which:(currentDialog===dialogLinesFortaleza?'fort':'intro'), index: dlgIndex},
-        bg: getComputedStyle(document.documentElement).getPropertyValue('--bg-url'),
-        tutorial
-      };
-      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-      if (mode==='manual') alert("Partida guardada.");
-    }catch(e){ console.error('Error guardando', e); }
-  }
-  function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
-  function loadGame(){
-    try{
-      const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false;
-      const s = JSON.parse(raw);
-      fase = s.fase ?? 1; turno = s.turno || 'jugador';
-      players = (s.players||[]).map(o=>Object.assign({}, o));
-      enemies = (s.enemies||[]).map(o=>Object.assign({}, o));
-      if (s.bg){ document.documentElement.style.setProperty('--bg-url', s.bg); }
-      if (s.tutorial){ Object.assign(tutorial, s.tutorial); }
-
-      if (portada) portada.style.display="none";
-      if (intro) intro.style.display="none";
-      dialog.style.display="none";
-      mapa.style.display="grid";
-
-      dibujarMapa(); setTurno(turno); ajustarTamanoTablero(); applyOrientationLock();
-      btnGuardar && (btnGuardar.style.display="block");
-      return true;
-    }catch(e){ console.error('Error cargando', e); return false; }
-  }
-  if (btnGuardar){ btnGuardar.onclick = ()=> saveGame('manual'); }
-
-  // ---------- Menú portada ----------
-  function wireMenuButtons(){
-    if (btnNueva){ btnNueva.onclick = ()=> newGame(); }
-    if (btnCargar){
-      btnCargar.onclick = ()=>{
-        if (!hasSave()) { alert("No hay partida guardada."); return; }
-        loadGame();
-      };
-    }
-    // helpers globales para depurar
-    window.TH_newGame  = ()=> newGame();
-    window.TH_loadGame = ()=> loadGame();
-  }
-  function newGame(){
-    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
-    if (portada) portada.style.display="none";
-    if (dialog)  dialog.style.display="none";
-    if (intro){
-      intro.style.display="block";
-      introPageIndex=0; showIntroPage(introPageIndex);
-    } else {
-      startIntroDialog();
-    }
-    applyOrientationLock();
-    btnGuardar && (btnGuardar.style.display="none");
-    saveGame('auto');
+  // ---------- Avance botones ----------
+  if (btnJugar){
+    btnJugar.onclick = ()=>{
+      portada.style.display = "none";
+      if (intro){
+        intro.style.display = "block";
+        introPageIndex=0; showIntroPage(introPageIndex);
+      } else {
+        startIntroDialog();
+      }
+      applyOrientationLock();
+    };
   }
 
-  // ---------- Botones de avance ----------
   if (btnIntroNext){
     btnIntroNext.onclick = ()=>{
       const page = INTRO_PAGES[introPageIndex];
@@ -844,11 +751,10 @@
         return;
       }
       if (introPageIndex < INTRO_PAGES.length - 1){
-        introPageIndex++; showIntroPage(introPageIndex); saveGame('auto');
+        introPageIndex++; showIntroPage(introPageIndex);
       } else {
         intro.style.display="none";
-        startIntroDialog(); // SIEMPRE: diálogo → tutorial
-        saveGame('auto');
+        startIntroDialog();
       }
       applyOrientationLock();
     };
@@ -883,7 +789,7 @@
     };
   }
 
-  // ---------- Pasar turno ----------
+  // ---------- Fin de turno ----------
   function endTurn(){
     players.forEach(p=>{ p.acted=true; p.mp=0; });
     seleccionado=null; celdasMovibles.clear(); distSel=null;
@@ -892,33 +798,16 @@
     setTimeout(turnoIAEnemigos, 140);
   }
 
-  // ---------- Teclas DEV ----------
-  // G: rejilla / T: forzar tutorial
-  document.addEventListener('keydown', (e)=>{
-    if (e.key === 't' || e.key === 'T'){
-      try{
-        tutorial.active = false;
-        startTutorial();
-        console.log('[DEV] Tutorial forzado con T');
-      }catch(err){ console.error(err); }
-    }
-  });
-
   // ---------- INIT ----------
   function init(){
-    if (portada){
-      portada.style.display="flex";
-      if (btnCargar) btnCargar.disabled = !hasSave();
-    }
+    if (portada) portada.style.display="flex";
     if (intro)  intro.style.display="none";
     if (dialog) dialog.style.display="none";
     if (mapa)   mapa.style.display="none";
 
-    // Fondo por defecto (primer escenario)
     setBackgroundAsset("assets/background.PNG");
 
     ajustarTamanoTablero(); applyOrientationLock();
-    wireMenuButtons();
   }
   if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); }
   else { init(); }
