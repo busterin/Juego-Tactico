@@ -4,11 +4,10 @@
   <meta charset="UTF-8" />
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=save-load">
+  <link rel="stylesheet" href="style.css?v=full-2025-09-17" />
 </head>
 <body>
-  <!-- Bloqueo por orientación vertical (el juego va en horizontal) -->
+  <!-- Bloqueo por orientación vertical (forzamos horizontal 16:9) -->
   <div id="orientationBlocker" style="display:none">
     <div class="obx">
       <p>Gira el dispositivo para jugar en horizontal</p>
@@ -19,76 +18,69 @@
   <div id="portada">
     <img src="assets/Portada.PNG" alt="Portada Tactic Heroes" class="portada-img">
     <div class="portada-actions">
-      <button id="btnNuevaPartida" class="btn">NUEVA PARTIDA</button>
-      <button id="btnCargarPartida" class="btn secondary">CARGAR PARTIDA</button>
+      <button id="btnNuevaPartida" class="btn">Nueva partida</button>
+      <button id="btnCargarPartida" class="btn secondary">Cargar partida</button>
     </div>
   </div>
 
-  <!-- Escena de INTRO (pantallas tipo Fire Emblem) -->
-  <div id="introScene" style="display:none">
-    <img id="introImg" class="intro-bg" src="assets/Inicio1.PNG" alt="Introducción">
+  <!-- Intro (4 imágenes con typewriter) -->
+  <section id="introScene" style="display:none">
+    <img id="introImg" class="intro-bg" alt="Introducción">
     <div class="intro-box">
       <div id="introText" class="intro-text"></div>
       <div class="intro-cta">
-        <button id="btnIntroNext" class="primary small">Continuar</button>
+        <button id="btnIntroNext" class="btn">Continuar</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Escena de DIÁLOGO (Risko/Hans/Guardián) -->
-  <div id="dialogScene" style="display:none">
+  <!-- Diálogo (Risko/Hans/Guardián) -->
+  <section id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
-
     <!-- Personajes -->
-    <img class="dialog-char left"  id="charArcher"  src="assets/ArqueroDialogo.PNG"   alt="Hans">
-    <img class="dialog-char right" id="charKnight"  src="assets/GuerreraDialogo.PNG"  alt="Risko">
-    <!-- El Guadián también lo carga el script si no estuviera, pero lo dejamos ya puesto -->
-    <img class="dialog-char left"  id="charGuardian" src="assets/GuardianDialogo.PNG" alt="Guardián" style="display:none">
-
-    <!-- Caja de diálogo -->
+    <img class="dialog-char right" id="charKnight" alt="Risko">
+    <img class="dialog-char left"  id="charArcher" alt="Hans">
+    <!-- Guardián se crea por JS si no existe -->
+    <!-- Caja diálogo -->
     <div class="dialog-box">
       <div class="dialog-name" id="dialogName">Risko</div>
       <div class="dialog-text" id="dialogText"></div>
       <div class="dialog-cta">
-        <button id="btnDialogNext" class="primary small">Continuar</button>
+        <button id="btnDialogNext" class="btn">Continuar</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Overlay: ¡COMIENZA EL COMBATE! -->
-  <div id="battleStartBanner">¡COMIENZA EL COMBATE!</div>
-  <audio id="battleStartSound" src="assets/drum.mp3" preload="auto"></audio>
+  <!-- Banner inicio combate -->
+  <div id="battleStartBanner">
+    <div class="inner">¡COMIENZA EL COMBATE!</div>
+  </div>
+  <audio id="battleStartSound" preload="auto">
+    <source src="assets/tambor.mp3" type="audio/mpeg" />
+  </audio>
 
   <!-- Overlay NIVEL COMPLETADO -->
   <div id="overlayWin" class="overlay" style="display:none">
     <div class="overlay-box">
       <h1>NIVEL COMPLETADO</h1>
-      <button id="btnContinuar" class="primary">Continuar</button>
+      <button id="btnContinuar" class="btn">Continuar</button>
     </div>
   </div>
 
   <!-- Banner de turno -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
 
-  <!-- Tablero 16x9 + HUD fijo inferior -->
+  <!-- Botón guardar global (el script lo muestra/oculta) -->
+  <button id="btnGuardar" style="display:none">Guardar</button>
+
+  <!-- Tablero + HUD dentro -->
   <div id="mapa" style="display:none">
-    <!-- El HUD va fijo al pie por CSS (position: fixed) -->
     <div id="hud">
       <div id="ficha"></div>
       <div id="acciones"></div>
     </div>
   </div>
 
-  <!-- Botón flotante Guardar (si no lo pones, el script lo creará solo) -->
-  <button id="btnGuardar" style="display:none">Guardar</button>
-
-  <!-- Tutorial overlay -->
-  <div id="tutorialOverlay" style="display:none">
-    <div class="tut-box">
-      <p id="tutText" class="tut-text"></p>
-    </div>
-  </div>
-
-  <script src="script.js?v=save-load"></script>
+  <script src="script.js?v=full-2025-09-17"></script>
 </body>
 </html>
