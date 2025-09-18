@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=restore-fortaleza-sep" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css?v=save-load">
 </head>
 <body>
-  <!-- Bloqueo por orientación (el juego es horizontal 16:9) -->
+  <!-- Bloqueo por orientación vertical (el juego va en horizontal) -->
   <div id="orientationBlocker" style="display:none">
     <div class="obx">
       <p>Gira el dispositivo para jugar en horizontal</p>
@@ -17,31 +17,35 @@
 
   <!-- Portada -->
   <div id="portada">
-    <img src="assets/Portada.PNG" alt="Portada Tactic Heroes" class="portada-img" />
-    <button id="btnJugar" class="btn-jugar primary">JUGAR</button>
+    <img src="assets/Portada.PNG" alt="Portada Tactic Heroes" class="portada-img">
+    <div class="portada-actions">
+      <button id="btnNuevaPartida" class="btn">NUEVA PARTIDA</button>
+      <button id="btnCargarPartida" class="btn secondary">CARGAR PARTIDA</button>
+    </div>
   </div>
 
-  <!-- Intro tipo Fire Emblem (2 pantallas) -->
+  <!-- Escena de INTRO (pantallas tipo Fire Emblem) -->
   <div id="introScene" style="display:none">
-    <img id="introImg" alt="Introducción" class="intro-img" />
+    <img id="introImg" class="intro-bg" src="assets/Inicio1.PNG" alt="Introducción">
     <div class="intro-box">
-      <div class="intro-text" id="introText"></div>
+      <div id="introText" class="intro-text"></div>
       <div class="intro-cta">
         <button id="btnIntroNext" class="primary small">Continuar</button>
       </div>
     </div>
   </div>
 
-  <!-- Escena de diálogo (Risko/Hans/Guardián) -->
+  <!-- Escena de DIÁLOGO (Risko/Hans/Guardián) -->
   <div id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
 
-    <!-- Personajes (las src las asigna el script con tolerancia .PNG/.png) -->
-    <img class="dialog-char right" id="charKnight" alt="Risko" />
-    <img class="dialog-char left"  id="charArcher" alt="Hans" />
-    <img class="dialog-char left"  id="charGuardian" alt="Guardián" style="display:none" />
+    <!-- Personajes -->
+    <img class="dialog-char left"  id="charArcher"  src="assets/ArqueroDialogo.PNG"   alt="Hans">
+    <img class="dialog-char right" id="charKnight"  src="assets/GuerreraDialogo.PNG"  alt="Risko">
+    <!-- El Guadián también lo carga el script si no estuviera, pero lo dejamos ya puesto -->
+    <img class="dialog-char left"  id="charGuardian" src="assets/GuardianDialogo.PNG" alt="Guardián" style="display:none">
 
-    <!-- Caja de diálogo (en primer plano) -->
+    <!-- Caja de diálogo -->
     <div class="dialog-box">
       <div class="dialog-name" id="dialogName">Risko</div>
       <div class="dialog-text" id="dialogText"></div>
@@ -51,16 +55,11 @@
     </div>
   </div>
 
-  <!-- Banner de inicio de combate + tambor -->
-  <div id="battleStartBanner" class="battle-banner" style="display:none">
-    ¡COMIENZA EL COMBATE!
-  </div>
-  <audio id="battleStartSound" preload="auto">
-    <source src="assets/drum.mp3" type="audio/mpeg" />
-    <source src="assets/drum.ogg" type="audio/ogg" />
-  </audio>
+  <!-- Overlay: ¡COMIENZA EL COMBATE! -->
+  <div id="battleStartBanner">¡COMIENZA EL COMBATE!</div>
+  <audio id="battleStartSound" src="assets/drum.mp3" preload="auto"></audio>
 
-  <!-- Overlay: NIVEL COMPLETADO -->
+  <!-- Overlay NIVEL COMPLETADO -->
   <div id="overlayWin" class="overlay" style="display:none">
     <div class="overlay-box">
       <h1>NIVEL COMPLETADO</h1>
@@ -71,17 +70,25 @@
   <!-- Banner de turno -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
 
-  <!-- Tablero (9x16) + HUD -->
+  <!-- Tablero 16x9 + HUD fijo inferior -->
   <div id="mapa" style="display:none">
+    <!-- El HUD va fijo al pie por CSS (position: fixed) -->
     <div id="hud">
       <div id="ficha"></div>
       <div id="acciones"></div>
     </div>
   </div>
 
-  <!-- (opcional) Botón guardar flotante, no esencial en esta restauración -->
-  <!-- <button id="btnGuardar" class="btn-guardar" style="display:none">Guardar</button> -->
+  <!-- Botón flotante Guardar (si no lo pones, el script lo creará solo) -->
+  <button id="btnGuardar" style="display:none">Guardar</button>
 
-  <script src="script.js?v=restore-fortaleza-sep"></script>
+  <!-- Tutorial overlay -->
+  <div id="tutorialOverlay" style="display:none">
+    <div class="tut-box">
+      <p id="tutText" class="tut-text"></p>
+    </div>
+  </div>
+
+  <script src="script.js?v=save-load"></script>
 </body>
 </html>
