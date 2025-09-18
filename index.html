@@ -5,10 +5,10 @@
   <title>TACTIC HEROES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=landscape-stable" />
+  <link rel="stylesheet" href="style.css?v=restore-fortaleza-sep" />
 </head>
 <body>
-  <!-- Bloqueo por orientación vertical (el juego es horizontal 16:9) -->
+  <!-- Bloqueo por orientación (el juego es horizontal 16:9) -->
   <div id="orientationBlocker" style="display:none">
     <div class="obx">
       <p>Gira el dispositivo para jugar en horizontal</p>
@@ -18,17 +18,12 @@
   <!-- Portada -->
   <div id="portada">
     <img src="assets/Portada.PNG" alt="Portada Tactic Heroes" class="portada-img" />
-    <div class="portada-actions">
-      <button id="btnNuevaPartida" class="btn-jugar primary">Nueva partida</button>
-      <button id="btnCargarPartida" class="btn-cargar">Cargar partida</button>
-    </div>
+    <button id="btnJugar" class="btn-jugar primary">JUGAR</button>
   </div>
 
-  <!-- Secuencia de introducción (pantallas tipo Fire Emblem) -->
+  <!-- Intro tipo Fire Emblem (2 pantallas) -->
   <div id="introScene" style="display:none">
-    <!-- La imagen de fondo ocupa toda la pantalla -->
     <img id="introImg" alt="Introducción" class="intro-img" />
-    <!-- Caja de texto fija abajo (el script rellena el texto) -->
     <div class="intro-box">
       <div class="intro-text" id="introText"></div>
       <div class="intro-cta">
@@ -41,12 +36,12 @@
   <div id="dialogScene" style="display:none">
     <div class="dialog-bg"></div>
 
-    <!-- Personajes (las src reales las pone el script con tolerancia .PNG/.png) -->
+    <!-- Personajes (las src las asigna el script con tolerancia .PNG/.png) -->
     <img class="dialog-char right" id="charKnight" alt="Risko" />
     <img class="dialog-char left"  id="charArcher" alt="Hans" />
     <img class="dialog-char left"  id="charGuardian" alt="Guardián" style="display:none" />
 
-    <!-- Caja de diálogo (siempre en primer plano) -->
+    <!-- Caja de diálogo (en primer plano) -->
     <div class="dialog-box">
       <div class="dialog-name" id="dialogName">Risko</div>
       <div class="dialog-text" id="dialogText"></div>
@@ -56,7 +51,7 @@
     </div>
   </div>
 
-  <!-- Banner de inicio de combate + sonido de tambor -->
+  <!-- Banner de inicio de combate + tambor -->
   <div id="battleStartBanner" class="battle-banner" style="display:none">
     ¡COMIENZA EL COMBATE!
   </div>
@@ -76,7 +71,7 @@
   <!-- Banner de turno -->
   <div id="turnBanner" class="turn-banner" style="display:none">TU TURNO</div>
 
-  <!-- Tablero (9x16) + HUD dentro -->
+  <!-- Tablero (9x16) + HUD -->
   <div id="mapa" style="display:none">
     <div id="hud">
       <div id="ficha"></div>
@@ -84,10 +79,9 @@
     </div>
   </div>
 
-  <!-- Botón Guardar (si no estuviera, el script lo crea) -->
-  <button id="btnGuardar" style="display:none" class="btn-guardar">Guardar</button>
+  <!-- (opcional) Botón guardar flotante, no esencial en esta restauración -->
+  <!-- <button id="btnGuardar" class="btn-guardar" style="display:none">Guardar</button> -->
 
-  <!-- Lógica -->
-  <script src="script.js?v=landscape-stable"></script>
+  <script src="script.js?v=restore-fortaleza-sep"></script>
 </body>
 </html>
