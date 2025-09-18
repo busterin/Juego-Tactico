@@ -1,30 +1,22 @@
 :root{
-  --cell: 40px;           /* recalculada por JS */
+  --cell: 40px;             /* se recalcula por JS */
   --gap: 0px;
-
-  /* Dimensiones del tablero 16x9 (horizontal) */
   --cols: 16;
   --rows: 9;
-
-  /* Filas no jugables (HUD no ocupa mapa, pero limitamos 2 filas) */
   --npRows: 2;
 
-  /* Fondo compartido (.PNG en mayúsculas por defecto) */
-  --bg-url: url("assets/background.PNG");
+  /* HUD en combate (en filas “virtuales” dentro del tablero) */
+  --hudRows: 1.6;
+  --hudOffset: 0.2;
 
-  /* Zs */
-  --z-map: 100;
-  --z-hud: 4000;
-  --z-dialog: 5000;
-  --z-banners: 6000;
-  --z-portada: 7000;
-  --z-orientation: 9000;
+  /* Fondo global (el script lo cambia con setBackgroundAsset) */
+  --bg-url: url("assets/background.PNG");
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 
-body {
+body{
   font-family: system-ui, Arial, sans-serif;
   margin: 0;
   height: 100dvh;
@@ -33,164 +25,179 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
 
-  /* Fondo de “escenario” (rellena pantalla) */
+  /* fondo por defecto (cambia en escenas) */
   background-image: var(--bg-url);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-color: #000;
+}
 
-  padding-bottom: env(safe-area-inset-bottom);
+/* ---------- Bloqueo orientación ---------- */
+#orientationBlocker{
+  position: fixed; inset: 0; z-index: 20000;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(2px);
+}
+#orientationBlocker .obx{
+  background: #101418; color: #fff;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px; padding: 18px 16px;
+  width: min(86vw, 420px); text-align: center;
+  font-weight: 700; box-shadow: 0 12px 28px rgba(0,0,0,.45);
 }
 
 /* ---------- Portada ---------- */
 #portada{
-  position: fixed; inset: 0;
-  background: #000;
+  position: fixed; inset: 0; z-index: 10000;
   display: flex; align-items: center; justify-content: center;
-  z-index: var(--z-portada);
+  background: #000;
 }
 #portada .portada-img{
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: center;
   pointer-events: none;
 }
-#portada .menu{
-  position: relative; z-index: 1;
-  display: flex; flex-direction: column; gap: 12px;
+.portada-actions{
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: max(7vh, 48px);
+  display: flex; gap: 14px;
+  z-index: 10002;             /* <- por encima de la imagen */
 }
-.btn{
-  padding: 12px 20px; font-size: 18px; border-radius: 12px; border: 2px solid #c9d2e3;
-  background: #fff; color:#111; cursor: pointer; font-weight: 800;
+.portada-actions::before{
+  content:"";
+  position: absolute; inset: -14px -18px -14px -18px;
+  background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.25));
+  border-radius: 16px;
+  z-index: -1;
+  box-shadow: 0 10px 24px rgba(0,0,0,.4);
 }
-.btn.big{ font-size: 20px; padding: 14px 24px; }
-.btn.primary{ background: #1b76ff; border-color:#1b76ff; color:#fff; }
-.btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* Botones portada */
+button{
+  padding: 10px 14px; font-size: 14px;
+  border-radius: 12px; border: 1px solid #c9d2e3;
+  background: #fff; color: #111; cursor: pointer;
+}
+button.primary{
+  background: #1b76ff; color: #fff; border-color: #1b76ff;
+}
+.btn-jugar{ font-weight: 700; }
+.btn-cargar{ font-weight: 700; background: #fff; }
 
 /* ---------- Intro ---------- */
 #introScene{
-  position: fixed; inset:0; z-index: var(--z-dialog); display: block;
+  position: fixed; inset: 0; z-index: 12000; display: none;
 }
 .intro-img{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit: cover; object-position:center;
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
 }
 .intro-box{
-  position:absolute; left: 3%; right:3%;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  background: #0b1116; /* sin transparencia */
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 14px; padding: 12px 14px;
+  position: absolute; left: 4%; right: 4%;
+  bottom: 3.5%;
+  background: rgba(7,12,16,1); /* sin transparencia (pediste opaco) */
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px; padding: 12px 14px 14px 14px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
 }
 .intro-text{
-  font-size: 16px; line-height: 1.4; color:#e6ecf4; min-height: 3.2em;
+  font-size: 15px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px;
 }
-.intro-cta{ display:flex; justify-content:flex-end; margin-top:8px; }
+.intro-cta{ display: flex; justify-content: flex-end; }
 .small{ padding: 7px 12px; font-size: 13px; border-radius: 10px; }
 
-/* Cursor de tecleo */
-.type-cursor::after{
-  content: "▌"; display:inline-block; margin-left:2px; animation: cursorBlink .9s steps(1) infinite;
-}
-@keyframes cursorBlink { 50% { opacity: 0; } }
-
 /* ---------- Diálogo ---------- */
-#dialogScene{
-  position: fixed; inset: 0;
-  z-index: var(--z-dialog);
-  display: block;
-}
-.dialog-bg{
-  position:absolute; inset:0;
+#dialogScene{ position: fixed; inset: 0; z-index: 13000; display: none; }
+#dialogScene .dialog-bg{
+  position: absolute; inset: 0;
   background-image: var(--bg-url);
-  background-size: cover; background-position:center;
+  background-size: cover; background-position: center;
   filter: brightness(.95) saturate(1.05);
 }
 
-/* Personajes: más abajo; NO pixelated para que se vean nítidos */
+/* Personajes (más abajo para no tapar el cuadro) */
 .dialog-char{
-  position:absolute;
-  bottom: 12%;        /* más abajo como pediste */
-  height: 62%;
+  position: absolute;
+  bottom: 13%;             /* más abajo como pediste */
+  height: 60vh;            /* alto grande en horizontal */
+  max-height: 68%;
   max-width: 44vw;
   object-fit: contain;
-  image-rendering: auto; /* calidad */
-  opacity: .6;
-  transition: opacity .2s ease;
+  image-rendering: auto;   /* calidad nítida para ilustraciones */
+  opacity: .85;
   pointer-events: none;
 }
-.dialog-char.left  { left: 2%; }
-.dialog-char.right { right: 2%; }
+.dialog-char.right{ right: 3%; }
+.dialog-char.left{  left:  3%; }
+.dialog-char.stack2{ right: 20%; } /* segundo personaje en el mismo lado (separado) */
+.dialog-char.flip{ transform: scaleX(-1); } /* para Hans mirando al Guardián */
 
-/* Cuando habla, sube opacidad */
-.dialog-char.speaking{ opacity: 1 !important; }
-
-/* Hans puede voltearse en fortaleza */
-.dialog-char.flip{ transform: scaleX(-1); }
-
-/* Si comparten lado (fortaleza) usamos stack2 para que no se solapen */
-.dialog-char.stack2{ right: 18% !important; } /* separación cuando ambos en derecha */
-
-/* Caja de diálogo (sin transparencia) */
 .dialog-box{
-  position:absolute; left: 3%; right:3%;
-  bottom: max(10px, env(safe-area-inset-bottom));
-  background: #0b1116; /* sólido */
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 14px; padding: 12px 14px;
-  z-index: calc(var(--z-dialog) + 10);
+  position: absolute; left: 4%; right: 4%; bottom: 3.5%;
+  background: rgba(7,12,16,1); /* opaco */
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px; padding: 10px 12px 12px 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  z-index: 2; /* SIEMPRE por delante de personajes */
 }
-.dialog-name{ font-weight: 800; margin-bottom: 6px; color:#fff; letter-spacing:.2px; }
-.dialog-text{ font-size: 16px; line-height:1.4; color:#e6ecf4; min-height: 3.2em; margin-bottom: 10px; white-space: pre-wrap; }
-.dialog-cta{ display:flex; justify-content:flex-end; }
+.dialog-name{ font-weight: 800; margin-bottom: 6px; color: #fff; letter-spacing: .2px; }
+.dialog-text{ font-size: 15px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px; }
+.type-cursor::after{ content: "▌"; display: inline-block; margin-left: 2px; animation: cursorBlink .9s steps(1) infinite; }
+@keyframes cursorBlink { 50% { opacity: 0; } }
 
-/* ---------- Banner de combate ---------- */
+/* ---------- Banner inicio combate ---------- */
 .battle-banner{
   position: fixed; inset: 0;
-  display: flex; align-items:center; justify-content:center;
-  z-index: var(--z-banners);
-  background: rgba(0,0,0,.5);
-  font-size: clamp(22px, 4vw, 40px);
-  font-weight: 900; letter-spacing: 1px;
-  text-shadow: 0 3px 18px rgba(0,0,0,.6);
+  z-index: 12500;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: clamp(22px, 4vw, 40px);
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0,0,0,.6);
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(2px);
 }
 
 /* ---------- Overlay victoria ---------- */
 .overlay{
-  position: fixed; inset:0; z-index: var(--z-banners);
-  display:grid; place-items:center;
+  position: fixed; inset: 0; z-index: 14000;
+  display: grid; place-items: center;
   background: rgba(0,0,0,.55);
   backdrop-filter: blur(4px);
 }
 .overlay::before{
   content:""; position:absolute; inset:0; z-index:-1;
   background-image: var(--bg-url);
-  background-size: cover; background-position:center;
-  transform: scale(1.02);
-  filter: brightness(0.9);
+  background-size: cover; background-position: center;
+  transform: scale(1.02); filter: brightness(.9);
 }
 .overlay-box{
-  background: #101418; border:1px solid rgba(255,255,255,.15); border-radius:14px;
-  padding: 22px 20px; width: min(90vw, 420px); text-align:center;
-  box-shadow: 0 12px 28px rgba(0,0,0,.45);
+  background:#101418; border:1px solid rgba(255,255,255,.15);
+  border-radius:14px; padding:22px 20px; width:min(90vw, 420px);
+  text-align:center; box-shadow:0 12px 28px rgba(0,0,0,.45);
 }
-.overlay-box h1{ margin: 0 0 14px 0; }
+.overlay-box h1{ margin:0 0 14px 0; }
 
-/* ---------- Turn banner ---------- */
+/* ---------- Banner de turno ---------- */
 .turn-banner{
-  position: fixed;
-  left:50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%);
-  z-index: var(--z-banners);
+  position: fixed; left: 50%;
+  top: max(10px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  z-index: 15000;
   background: rgba(0,0,0,.6);
   border: 1px solid rgba(255,255,255,.25);
-  color:#fff; padding: 8px 14px; border-radius: 12px;
-  font-weight: 800; text-transform: uppercase;
+  color: #fff; padding: 8px 14px; border-radius: 12px;
+  font-weight: 800; letter-spacing: .4px; text-transform: uppercase;
   backdrop-filter: blur(3px);
   box-shadow: 0 6px 20px rgba(0,0,0,.35);
 }
 
-/* ---------- Tablero 9x16 ---------- */
+/* ---------- Tablero 16x9 ---------- */
 #mapa{
   flex: 1 1 auto;
   display: grid;
@@ -202,91 +209,79 @@ body {
   margin: auto;
   user-select: none;
   touch-action: manipulation;
-
   border: 2px solid rgba(255,255,255,.15);
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0,0,0,.3);
   position: relative;
-  z-index: var(--z-map);
-}
-.celda{
-  width: var(--cell); height: var(--cell); display:grid; place-items:center; cursor:pointer; position:relative;
-}
-.celda.movible{ outline: 3px solid rgba(48,140,255,0.55); outline-offset:-1px; }
-.celda.seleccionada{ box-shadow: inset 0 0 0 3px #1b76ff; }
-
-/* Sprites de unidades en mapa (pixel art) */
-.fichaMiniImg{
-  width: 90%; height: 90%;
-  object-fit: contain;
-  image-rendering: pixelated;
-  position: relative; z-index: 1; pointer-events: none;
 }
 
-/* Rejilla de depuración (G) */
-#mapa.debug .grid-label{
-  position:absolute; left: 2px; top: 2px; font-size: 10px; color:#fff; opacity:.85; text-shadow:0 1px 2px rgba(0,0,0,.6);
-}
-
-/* ---------- HUD (superpuesto, abajo) ---------- */
+/* HUD dentro del mapa (al fondo y delante de las fichas) */
 #hud{
-  position: fixed;
-  left: 0; right: 0;
-  bottom: 0;
-  z-index: var(--z-hud);
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-  display: flex; flex-direction: column; gap: 8px;
-  pointer-events: none; /* deja clickar el mapa salvo sus hijos */
+  position: absolute; left: 0; right: 0;
+  bottom: 0;          /* pegado abajo del mapa */
+  height: calc(var(--cell) * var(--hudRows));
+  padding: 6px 8px;
+  display: flex; flex-direction: column; gap: 6px;
+  pointer-events: auto;
+  z-index: 5;
 }
-#ficha, #acciones{ pointer-events: auto; }
 #ficha{
-  display: none;
-  width: min(92vw, 820px);
-  margin: 0 auto;
-  text-align: left;
+  display: none; width: 100%; text-align: left;
   background: rgba(16,20,24,.96);
-  color: #ddd;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 10px;
-  padding: 8px 10px;
+  color: #ddd; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: 6px 8px;
 }
+#acciones{
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+}
+
+/* Tarjeta ficha */
 .card{
-  display:grid; grid-template-columns: 56px 1fr; gap: 10px; align-items:center;
+  display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: center;
 }
 .card .portrait{
-  width: 56px; height: 56px; border-radius: 8px;
-  background-size: cover; background-position:center; background-repeat:no-repeat;
+  width: 52px; height: 52px; border-radius: 8px;
+  background-size: cover; background-position: center; background-repeat: no-repeat;
   border: 1px solid rgba(255,255,255,.12);
 }
 .card .name{ font-weight: 800; margin: 0 0 4px 0; color:#fff; }
-.meta{ margin: 0 0 4px 0; font-size: 12px; color:#c8d0df; }
-.hp{ display:flex; align-items:center; gap: 6px; }
-.hp .bar{ position:relative; flex:1; height: 10px; background:#243042; border:1px solid rgba(255,255,255,.12); border-radius: 999px; overflow:hidden; }
-.hp .bar > span{ display:block; height:100%; width:0%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width .25s ease; }
-.hp .value{ font-size: 11px; min-width: 76px; text-align:right; color:#e6e9ef; }
-
-#acciones{
-  width: min(92vw, 820px);
-  margin: 0 auto;
-  display:flex; flex-wrap: wrap; gap: 6px; justify-content:center;
+.meta{ margin: 0 0 4px 0; font-size: 12px; color: #c8d0df; }
+.hp{ display: flex; align-items: center; gap: 6px; }
+.hp .bar{
+  position: relative; flex: 1; height: 10px;
+  background: #243042; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px; overflow: hidden;
 }
-button{ padding: 7px 10px; font-size: 13px; border-radius: 10px; border: 1px solid #c9d2e3; background:#fff; color:#111; cursor:pointer; }
-button.primary{ background:#1b76ff; color:#fff; border-color:#1b76ff; }
-button:disabled{ opacity:.6; cursor:not-allowed; }
+.hp .bar > span{ display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width .25s ease; }
+.hp .value{ font-size: 11px; min-width: 76px; text-align: right; color:#e6e9ef; }
+
+/* Celdas y selección */
+.celda{ width: var(--cell); height: var(--cell); display: grid; place-items: center; position: relative; cursor: pointer; }
+.celda.movible{ outline: 3px solid rgba(48,140,255,0.55); outline-offset: -1px; }
+.celda.seleccionada{ box-shadow: inset 0 0 0 3px #1b76ff; }
+
+.fichaMiniImg{
+  width: 90%; height: 90%; object-fit: contain; image-rendering: pixelated;
+  position: relative; z-index: 1; pointer-events: none;
+}
+
+/* Etiquetas de rejilla (debug G) */
+.grid-label{
+  position: absolute; left: 3px; top: 3px;
+  font-size: 10px; color: rgba(255,255,255,.85);
+  text-shadow: 0 2px 4px rgba(0,0,0,.7);
+  pointer-events: none;
+}
 
 /* ---------- FX ---------- */
 @keyframes flash-yellow { 0% { background-color: rgba(255,230,0,.75);} 100% {background-color: transparent;} }
 @keyframes flash-red    { 0% { background-color: rgba(255,60,60,.75);} 100% {background-color: transparent;} }
-.celda.flash-player { animation: flash-yellow .28s ease-out; }
-.celda.flash-enemy  { animation: flash-red   .28s ease-out; }
-
+.celda.flash-player{ animation: flash-yellow .28s ease-out; }
+.celda.flash-enemy { animation: flash-red    .28s ease-out; }
 @keyframes blink-hit { 0%,100%{opacity:1;} 50%{opacity:.12;} }
 .fichaMiniImg.blink-hit { animation: blink-hit .6s linear 2; }
-
 @keyframes death-pop { 0%{opacity:1; transform: scale(1);} 100%{opacity:0; transform: scale(1.15);} }
-.death-pop { animation: death-pop .35s ease-out forwards; }
-
-/* Sacudida */
+.death-pop{ animation: death-pop .35s ease-out forwards; }
 @keyframes screen-shake {
   0% { transform: translate(0, 0); }
   20% { transform: translate(-6px, 4px); }
@@ -295,35 +290,23 @@ button:disabled{ opacity:.6; cursor:not-allowed; }
   80% { transform: translate(4px, -2px); }
   100% { transform: translate(0, 0); }
 }
-.shake { animation: screen-shake 0.4s ease-in-out; }
+.shake{ animation: screen-shake 0.4s ease-in-out; }
 
 /* ---------- Botón Guardar flotante ---------- */
-.floating-save{
-  position: fixed;
-  right: 10px;
-  bottom: calc(64px + env(safe-area-inset-bottom)); /* por encima del HUD */
-  z-index: var(--z-hud);
-  padding: 10px 12px; border-radius: 12px; font-weight: 800;
-  border: 2px solid #1b76ff; background:#0b1116; color:#fff;
-  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+.btn-guardar{
+  position: fixed; right: 12px; bottom: 12px; z-index: 16000;
+  padding: 10px 12px; font-weight: 700;
+  border-radius: 12px; border: 1px solid #1b76ff;
+  background: #1b76ff; color: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
 }
 
-/* ---------- Bloqueo orientación ---------- */
-#orientationBlocker{
-  position: fixed; inset: 0; z-index: var(--z-orientation);
-  display: grid; place-items: center;
-  background: rgba(0,0,0,.85); backdrop-filter: blur(2px);
-}
-#orientationBlocker .obx{
-  background: #101418; color: #fff; border: 1px solid rgba(255,255,255,.15);
-  border-radius: 14px; padding: 18px 16px; width: min(86vw, 420px); text-align: center; font-weight: 700;
-  box-shadow: 0 12px 28px rgba(0,0,0,.45);
-}
-
-/* Compacto */
-@media (max-width: 420px){
-  .dialog-char{ height: 58%; bottom: 11%; }
-  .card{ grid-template-columns: 48px 1fr; gap: 8px; }
-  .card .portrait{ width:48px; height:48px; }
-  button{ padding: 6px 9px; font-size: 12px; }
+/* Ultra-compacto */
+@media (max-width: 380px){
+  .card { grid-template-columns: 46px 1fr; gap: 6px; }
+  .card .portrait { width: 46px; height: 46px; }
+  .meta { font-size: 11px; }
+  .hp .value { font-size: 10px; min-width: 64px; }
+  button { padding: 8px 12px; font-size: 13px; }
+  .portada-actions{ gap: 10px; bottom: max(6vh, 40px); }
 }
