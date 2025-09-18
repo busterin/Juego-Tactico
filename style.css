@@ -1,21 +1,18 @@
 :root{
-  --cell: 40px;             /* se recalcula por JS */
+  --cell: 40px; /* recalculada por JS */
   --gap: 0px;
   --cols: 16;
   --rows: 9;
   --npRows: 2;
-
-  /* HUD en combate (en filas “virtuales” dentro del tablero) */
   --hudRows: 1.6;
   --hudOffset: 0.2;
 
-  /* Fondo global (el script lo cambia con setBackgroundAsset) */
+  /* Fondo global (el script lo cambia por escena; por defecto .PNG) */
   --bg-url: url("assets/background.PNG");
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-
 body{
   font-family: system-ui, Arial, sans-serif;
   margin: 0;
@@ -27,7 +24,6 @@ body{
   flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
 
-  /* fondo por defecto (cambia en escenas) */
   background-image: var(--bg-url);
   background-size: cover;
   background-position: center;
@@ -61,38 +57,21 @@ body{
   object-fit: cover; object-position: center;
   pointer-events: none;
 }
-.portada-actions{
-  position: absolute;
-  left: 50%; transform: translateX(-50%);
-  bottom: max(7vh, 48px);
-  display: flex; gap: 14px;
-  z-index: 10002;             /* <- por encima de la imagen */
+.btn-jugar{
+  position: absolute; bottom: max(8vh, 52px);
+  padding: 14px 26px; font-size: 20px; font-weight: 800;
+  border-radius: 12px; border: 2px solid #145a32;
+  background: linear-gradient(180deg, #27ae60, #1e8449);
+  color: #fff; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
 }
-.portada-actions::before{
-  content:"";
-  position: absolute; inset: -14px -18px -14px -18px;
-  background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.25));
-  border-radius: 16px;
-  z-index: -1;
-  box-shadow: 0 10px 24px rgba(0,0,0,.4);
-}
+.btn-jugar:hover{ background: linear-gradient(180deg, #2ecc71, #229954); }
+button{ padding: 8px 12px; font-size: 14px; border-radius: 10px; border: 1px solid #c9d2e3; background: #fff; color: #111; cursor: pointer; }
+button.primary{ background: #1b76ff; color: #fff; border-color: #1b76ff; }
+.small{ padding: 7px 12px; font-size: 13px; border-radius: 10px; }
 
-/* Botones portada */
-button{
-  padding: 10px 14px; font-size: 14px;
-  border-radius: 12px; border: 1px solid #c9d2e3;
-  background: #fff; color: #111; cursor: pointer;
-}
-button.primary{
-  background: #1b76ff; color: #fff; border-color: #1b76ff;
-}
-.btn-jugar{ font-weight: 700; }
-.btn-cargar{ font-weight: 700; background: #fff; }
-
-/* ---------- Intro ---------- */
-#introScene{
-  position: fixed; inset: 0; z-index: 12000; display: none;
-}
+/* ---------- Intro (2 pantallas) ---------- */
+#introScene{ position: fixed; inset: 0; z-index: 12000; display: none; }
 .intro-img{
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: center;
@@ -100,7 +79,7 @@ button.primary{
 .intro-box{
   position: absolute; left: 4%; right: 4%;
   bottom: 3.5%;
-  background: rgba(7,12,16,1); /* sin transparencia (pediste opaco) */
+  background: rgba(7,12,16,1); /* opaco */
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 12px; padding: 12px 14px 14px 14px;
   box-shadow: 0 10px 24px rgba(0,0,0,.35);
@@ -109,7 +88,6 @@ button.primary{
   font-size: 15px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px;
 }
 .intro-cta{ display: flex; justify-content: flex-end; }
-.small{ padding: 7px 12px; font-size: 13px; border-radius: 10px; }
 
 /* ---------- Diálogo ---------- */
 #dialogScene{ position: fixed; inset: 0; z-index: 13000; display: none; }
@@ -120,22 +98,22 @@ button.primary{
   filter: brightness(.95) saturate(1.05);
 }
 
-/* Personajes (más abajo para no tapar el cuadro) */
+/* Personajes más abajo (para no tapar la caja) */
 .dialog-char{
   position: absolute;
-  bottom: 13%;             /* más abajo como pediste */
-  height: 60vh;            /* alto grande en horizontal */
+  bottom: 8%;          /* más bajo que antes, como pediste */
+  height: 60vh;
   max-height: 68%;
   max-width: 44vw;
   object-fit: contain;
-  image-rendering: auto;   /* calidad nítida para ilustraciones */
-  opacity: .85;
+  image-rendering: auto;  /* nitidez para ilustraciones */
+  opacity: .9;
   pointer-events: none;
 }
 .dialog-char.right{ right: 3%; }
 .dialog-char.left{  left:  3%; }
-.dialog-char.stack2{ right: 20%; } /* segundo personaje en el mismo lado (separado) */
-.dialog-char.flip{ transform: scaleX(-1); } /* para Hans mirando al Guardián */
+.dialog-char.stack2{ right: 22%; } /* separación para que no se solapen en el mismo lado */
+.dialog-char.flip{ transform: scaleX(-1); } /* Hans mirando al Guardián cuando está a la derecha */
 
 .dialog-box{
   position: absolute; left: 4%; right: 4%; bottom: 3.5%;
@@ -147,17 +125,16 @@ button.primary{
 }
 .dialog-name{ font-weight: 800; margin-bottom: 6px; color: #fff; letter-spacing: .2px; }
 .dialog-text{ font-size: 15px; line-height: 1.35; color: #e6ecf4; min-height: 3.2em; margin-bottom: 10px; }
+
 .type-cursor::after{ content: "▌"; display: inline-block; margin-left: 2px; animation: cursorBlink .9s steps(1) infinite; }
 @keyframes cursorBlink { 50% { opacity: 0; } }
 
 /* ---------- Banner inicio combate ---------- */
 .battle-banner{
-  position: fixed; inset: 0;
-  z-index: 12500;
+  position: fixed; inset: 0; z-index: 12500;
   display: flex; align-items: center; justify-content: center;
   font-weight: 900; font-size: clamp(22px, 4vw, 40px);
-  letter-spacing: 1px;
-  color: #fff;
+  letter-spacing: 1px; color: #fff;
   text-shadow: 0 2px 14px rgba(0,0,0,.6);
   background: rgba(0,0,0,.35);
   backdrop-filter: blur(2px);
@@ -215,15 +192,14 @@ button.primary{
   position: relative;
 }
 
-/* HUD dentro del mapa (al fondo y delante de las fichas) */
+/* HUD dentro del mapa */
 #hud{
   position: absolute; left: 0; right: 0;
-  bottom: 0;          /* pegado abajo del mapa */
+  bottom: 0; /* pegado abajo */
   height: calc(var(--cell) * var(--hudRows));
   padding: 6px 8px;
   display: flex; flex-direction: column; gap: 6px;
-  pointer-events: auto;
-  z-index: 5;
+  pointer-events: auto; z-index: 5;
 }
 #ficha{
   display: none; width: 100%; text-align: left;
@@ -231,9 +207,7 @@ button.primary{
   color: #ddd; border: 1px solid rgba(255,255,255,.12);
   border-radius: 10px; padding: 6px 8px;
 }
-#acciones{
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
-}
+#acciones{ display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 
 /* Tarjeta ficha */
 .card{
@@ -265,7 +239,7 @@ button.primary{
   position: relative; z-index: 1; pointer-events: none;
 }
 
-/* Etiquetas de rejilla (debug G) */
+/* Rejilla debug (G) */
 .grid-label{
   position: absolute; left: 3px; top: 3px;
   font-size: 10px; color: rgba(255,255,255,.85);
@@ -273,7 +247,7 @@ button.primary{
   pointer-events: none;
 }
 
-/* ---------- FX ---------- */
+/* FX */
 @keyframes flash-yellow { 0% { background-color: rgba(255,230,0,.75);} 100% {background-color: transparent;} }
 @keyframes flash-red    { 0% { background-color: rgba(255,60,60,.75);} 100% {background-color: transparent;} }
 .celda.flash-player{ animation: flash-yellow .28s ease-out; }
@@ -292,21 +266,11 @@ button.primary{
 }
 .shake{ animation: screen-shake 0.4s ease-in-out; }
 
-/* ---------- Botón Guardar flotante ---------- */
-.btn-guardar{
-  position: fixed; right: 12px; bottom: 12px; z-index: 16000;
-  padding: 10px 12px; font-weight: 700;
-  border-radius: 12px; border: 1px solid #1b76ff;
-  background: #1b76ff; color: #fff;
-  box-shadow: 0 6px 18px rgba(0,0,0,.35);
-}
-
 /* Ultra-compacto */
 @media (max-width: 380px){
   .card { grid-template-columns: 46px 1fr; gap: 6px; }
   .card .portrait { width: 46px; height: 46px; }
   .meta { font-size: 11px; }
   .hp .value { font-size: 10px; min-width: 64px; }
-  button { padding: 8px 12px; font-size: 13px; }
-  .portada-actions{ gap: 10px; bottom: max(6vh, 40px); }
+  button { padding: 7px 10px; font-size: 12px; }
 }
