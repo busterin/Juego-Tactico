@@ -251,7 +251,7 @@
       ocupadas.add(key(f,c));
       enemies.push({
         id:`E${Date.now()}-${i}`,
-        nombre:`Bandido ${i+1 + (fase===2?3:0)}`,
+        nombre:`Soldado ${i+1 + (fase===2?3:0)}`,
         fila:f, col:c, vivo:true,
         hp:50, maxHp:50,
         retrato:"assets/enemy.PNG",
@@ -696,10 +696,10 @@
     ];
     enemies = [];
     // Enemigo para Risko (adyacente tras mover a 6,4)
-    tutorial.enemyR = { id:"TR", nombre:"Bandido R", fila:6, col:5, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mp:ENEMY_MAX_MP };
+    tutorial.enemyR = { id:"TR", nombre:"Soldado A", fila:6, col:5, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mp:ENEMY_MAX_MP };
     // Enemigo para Hans (a distancia 2 en vertical tras mover Hans a 6,3)
-    tutorial.enemyH = { id:"TH", nombre:"Bandido H", fila:4, col:3, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mp:ENEMY_MAX_MP };
-    enemies.push(tutorial.enemyR, tutorial.enemyH);
+    tutorial.enemyH = { id:"TH", nombre:"Soldado B", fila:4, col:3, vivo:true, hp:50, maxHp:50, retrato:"assets/enemy.PNG", damage:ENEMY_BASE_DAMAGE, mp:ENEMY_MAX_MP };
+    enemies.push(tutorial.enemyR, tutorial.ene ya);
 
     seleccionado = null; celdasMovibles.clear(); distSel=null;
     tutorial.active = true; tutorial.step = 0;
