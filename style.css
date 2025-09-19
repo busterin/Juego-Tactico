@@ -55,14 +55,19 @@ body{
   background-size:cover; background-position:center; filter:brightness(.95) saturate(1.05);
 }
 .dialog-char{
-  position:absolute; bottom:22%; height:58%; max-width:44vw; object-fit:contain;
-  image-rendering:pixelated; opacity:.6; transition:opacity .2s ease; pointer-events:none;
+  position:absolute;
+  bottom:22%;
+  height:58%;
+  max-width:44vw;
+  object-fit:contain;
+  /* ✅ nitidez para ilustraciones HD */
+  image-rendering:auto;                /* antes: pixelated (quitarlo) */
+  -webkit-optimize-contrast;           /* mejora en WebKit */
+  backface-visibility:hidden;          /* evita difuminados por composición */
+  opacity:.6;
+  transition:opacity .2s ease;
+  pointer-events:none;
 }
-.dialog-char.left{ left:2%; transform:none; }
-.dialog-char.right{ right:2%; transform:none; }
-.dialog-char.speaking{ opacity:1 !important; filter:drop-shadow(0 0 10px rgba(255,255,255,.12)); }
-@keyframes speak-pop { 0%{transform:translateY(0) scale(1);} 30%{transform:translateY(-3px) scale(1.03);} 60%{transform:translateY(0) scale(1);} 100%{transform:translateY(0) scale(1);} }
-.dialog-char.pop{ animation:speak-pop 1.2s ease-in-out .3s infinite; }
 
 .dialog-box{
   position:absolute; left:4%; right:4%; bottom:4%;
