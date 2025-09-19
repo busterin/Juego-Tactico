@@ -730,55 +730,119 @@
   }
 
   // ---------- Init ----------
-  function init(){
+function init(){
+  try{
     players=[makeKnight(),makeArcher()];
-    ajustarTamanoTablero(); spawnFase(); dibujarMapa();
-    if (btnContinuar) btnContinuar.onclick=()=>{ overlayWin.style.display="none"; location.reload(); };
+    ajustarTamanoTablero(); 
+    spawnFase(); 
+    dibujarMapa();
 
-    // Estado inicial
+    if (btnContinuar) btnContinuar.onclick=()=>{ 
+      overlayWin.style.display="none"; 
+      location.reload(); 
+    };
+
+    // Estado inicial visible
     if (portada) portada.style.display = "flex";
     if (intro)   intro.style.display   = "none";
     if (dialog)  dialog.style.display  = "none";
     if (mapa)    mapa.style.display    = "none";
 
-    if (btnJugar){
-      btnJugar.onclick = ()=>{
+    // 🔒 Asegura que ningún overlay bloquee la portada
+    const blocker = document.getElementById("orientationBlocker");
+    if (blocker) blocker.style.display = "none";
+    if (portada){
+      portada.style.pointerEvents = "auto";
+      portada.style.filter = "none";
+    }
+
+    // ✅ Arranque robusto
+    const startGame = ()=>{
+      try{
+        if (!portada) return;
         portada.style.display = "none";
         if (intro){
           intro.style.display = "block";
           introPageIndex = 0;
           showIntroPage(introPageIndex);
         } else if (dialog){
-          dlgIndex = 0; dialog.style.display = "block"; showCurrentDialog();
+          dlgIndex = 0;
+          dialog.style.display = "block";
+          showCurrentDialog();
         } else {
-          // Si no hay intro/diálogo, se puede arrancar tutorial directamente:
           startTutorial();
         }
         applyOrientationLock();
-      };
+      }catch(err){
+        console.error("[startGame] Error:", err);
+        // Fallback: inicia tutorial si algo falla en intro/diálogo
+        try{ startTutorial(); }catch(e2){ console.error("[fallback tutorial] Error:", e2); }
+      }
+    };
+
+    // 🎯 Click en el botón
+    if (btnJugar){
+      btnJugar.type = "button";
+      btnJugar.addEventListener("click", startGame, { once:true });
+    } else {
+      console.warn("btnJugar no encontrado");
     }
 
+    // 🖱️ Fallback: click en cualquier sitio de la portada también arranca
+    if (portada){
+      portada.addEventListener("click", (e)=>{
+        // si pincha exactamente en el botón, ya lo gestiona el listener de arriba
+        if (e.target === btnJugar) return;
+        startGame();
+      }, { once:true });
+    }
+
+    // Intro → Diálogo / Tutorial
     if (btnIntroNext){
       btnIntroNext.onclick = ()=>{
-        const page = INTRO_PAGES[introPageIndex];
-        if (introTyping){ clearTimeout(introTypeTimer); introTextEl.textContent = page.text; introTextEl.classList.remove('type-cursor'); introTyping = false; return; }
-        if (introPageIndex < INTRO_PAGES.length - 1){
-          introPageIndex++; showIntroPage(introPageIndex);
-        } else {
-          if (intro) intro.style.display = "none";
-          if (dialog){ dlgIndex = 0; dialog.style.display = "block"; showCurrentDialog(); }
-          else { startTutorial(); }
+        try{
+          const page = INTRO_PAGES[introPageIndex];
+          if (introTyping){
+            clearTimeout(introTypeTimer);
+            introTextEl.textContent = page.text;
+            introTextEl.classList.remove('type-cursor');
+            introTyping = false;
+            return;
+          }
+          if (introPageIndex < INTRO_PAGES.length - 1){
+            introPageIndex++;
+            showIntroPage(introPageIndex);
+          } else {
+            if (intro) intro.style.display = "none";
+            if (dialog){
+              dlgIndex = 0; 
+              dialog.style.display = "block"; 
+              showCurrentDialog();
+            } else {
+              startTutorial();
+            }
+          }
+          applyOrientationLock();
+        }catch(err){
+          console.error("[btnIntroNext] Error:", err);
+          try{ startTutorial(); }catch(e2){ console.error("[fallback tutorial] Error:", e2); }
         }
-        applyOrientationLock();
       };
     }
 
     if (btnDialogNext) btnDialogNext.onclick = advanceDialog;
 
     // Rejilla debug
-    document.addEventListener("keydown", (e)=>{ if(e.key==="g"||e.key==="G"){ mapa.classList.toggle("debug"); } });
+    document.addEventListener("keydown", (e)=>{ 
+      if(e.key==="g"||e.key==="G"){ 
+        mapa.classList.toggle("debug"); 
+      } 
+    });
 
     setupOrientationLock();
+  }catch(err){
+    console.error("[init] Error:", err);
   }
-  init();
-})();
+}
+// Ejecuta init al cargar
+try { init(); } catch(e){ console.error("[global init] Error:", e); }
